@@ -28,8 +28,8 @@ export default function PracticeTestPage() {
 
   const transformAiQuestions = (aiOutput: GeneratePracticeQuestionsOutput, config: PracticeTestConfig): AppQuestion[] => {
     return aiOutput.generatedMcqs.map((mcq, index) => ({
-      id: `practice-${config.subject}-${index + 1}`,
-      subject: config.subject,
+      id: `practice-${config.subject}-${config.chapter.replace(/\s+/g, '-')}-${index + 1}`, // make id more unique
+      subject: config.subject, // This should come from the config
       questionText: mcq.questionText,
       options: mcq.options,
       correctAnswer: mcq.correctAnswer,
@@ -106,7 +106,7 @@ export default function PracticeTestPage() {
 
 
   if (testState === 'loading') {
-    return <LoadingSpinner text="Generating your practice test..." />;
+    return <div className="flex items-center justify-center h-screen"><LoadingSpinner text="Generating your practice test..." /></div>;
   }
 
   if (testState === 'inProgress' && currentTestConfig) {
@@ -116,6 +116,7 @@ export default function PracticeTestPage() {
         durationMinutes={durationMinutes}
         onTestSubmit={handleSubmitTest}
         testType="practice"
+        practiceTestConfig={{subject: currentTestConfig.subject, chapter: currentTestConfig.chapter }}
       />
     );
   }
@@ -125,9 +126,10 @@ export default function PracticeTestPage() {
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="w-full max-w-2xl mx-auto py-8">
       <h1 className="text-3xl font-bold text-center mb-8 text-primary">Create Practice MCQs</h1>
       <PracticeTestSetupForm onSubmit={handleSetupSubmit} isLoading={testState === 'loading'} />
     </div>
   );
 }
+

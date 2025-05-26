@@ -16,7 +16,7 @@ import { useRouter } from 'next/navigation';
 
 
 const MOCK_TEST_DURATION_MINUTES = 180; // 3 hours
-const MOCK_TEST_NUM_QUESTIONS = 180; // Updated to 180 questions
+const MOCK_TEST_NUM_QUESTIONS = 180; 
 
 export default function MockTestPage() {
   const [testState, setTestState] = useState<'idle' | 'loading' | 'inProgress' | 'completed'>('idle');
@@ -27,7 +27,7 @@ export default function MockTestPage() {
 
   const transformAiQuestions = (aiOutput: GenerateMockTestOutput): AppQuestion[] => {
     return aiOutput.questions.map((q, index) => ({
-      id: `mock-${index + 1}`,
+      id: `mock-${Date.now()}-${index + 1}`, // Ensure unique IDs
       subject: q.subject,
       questionText: q.question,
       options: q.options,
@@ -40,15 +40,22 @@ export default function MockTestPage() {
     try {
       const aiOutput = await generateMockTest({ numberOfQuestions: MOCK_TEST_NUM_QUESTIONS });
       if (aiOutput && aiOutput.questions.length > 0) {
-        setQuestions(transformAiQuestions(aiOutput));
+        // Ensure all questions have IDs
+        const transformedQuestions = transformAiQuestions(aiOutput);
+        const allHaveIds = transformedQuestions.every(q => q.id);
+        if (!allHaveIds) {
+            console.error("Some questions are missing IDs after transformation", transformedQuestions.filter(q=>!q.id));
+            // Fallback or error handling if needed
+        }
+        setQuestions(transformedQuestions);
         setTestState('inProgress');
       } else {
-        toast({ title: "Error", description: "Failed to generate mock test questions.", variant: "destructive" });
+        toast({ title: "Error", description: "Failed to generate mock test questions. Please try again.", variant: "destructive" });
         setTestState('idle');
       }
     } catch (error) {
       console.error("Error generating mock test:", error);
-      toast({ title: "Error", description: "An error occurred while generating the test.", variant: "destructive" });
+      toast({ title: "Error", description: "An error occurred while generating the test. Please try again.", variant: "destructive" });
       setTestState('idle');
     }
   };
@@ -92,7 +99,7 @@ export default function MockTestPage() {
   };
 
   if (testState === 'loading') {
-    return <LoadingSpinner text="Generating your mock test, please wait..." />;
+     return <div className="flex items-center justify-center h-screen"><LoadingSpinner text="Generating your mock test, please wait..." /></div>;
   }
 
   if (testState === 'inProgress') {
@@ -133,3 +140,4 @@ export default function MockTestPage() {
     </div>
   );
 }
+
