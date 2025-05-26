@@ -17,7 +17,7 @@ export default function TimerDisplay({ minutes, seconds, isActive }: TimerDispla
       <span className="text-xl font-mono font-semibold text-foreground">
         {String(displayHours).padStart(2, '0')}:{String(displayMinutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
       </span>
-      {!isActive && totalSecondsLeft === 0 && <span className="text-destructive-foreground bg-destructive px-2 py-1 rounded text-sm">Time's up!</span>}
+      {/* Time's up message is handled by the parent component (TestInProgress.tsx) */}
     </div>
   );
 }
@@ -28,3 +28,4 @@ export default function TimerDisplay({ minutes, seconds, isActive }: TimerDispla
 // The current component only needs minutes and seconds, isActive for styling.
 // Let's keep it simple as per its props, the Time's up message can be handled by parent.
 // Removing the Time's up! line from here to simplify, parent can show status.
+
