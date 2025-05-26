@@ -41,22 +41,23 @@ const prompt = ai.definePrompt({
   name: 'generateMockTestPrompt',
   input: {schema: GenerateMockTestInputSchema},
   output: {schema: GenerateMockTestOutputSchema},
-  prompt: `You are a test generator that creates realistic mock Multiple Choice Question (MCQ) tests for students preparing for exams based on class 11th and 12th syllabus.
+  prompt: `You are an expert test generator. Your task is to create a mock Multiple Choice Question (MCQ) test based on the class 11th and 12th syllabus.
 
-  Create a mock test with a total of {{numberOfQuestions}} MCQs. The distribution should be:
+  Generate exactly {{numberOfQuestions}} MCQs in total, with the following subject distribution:
   - Physics: 45 MCQs
   - Chemistry: 45 MCQs
-  - Biology (covering Botany and Zoology): 90 MCQs
+  - Biology (covering both Botany and Zoology): 90 MCQs
 
-  Each MCQ must have:
-  - "subject": Physics, Chemistry, or Biology.
-  - "question": The question text.
-  - "options": An array of exactly 4 string options.
-  - "answer": The text of the correct option, which must be one of the 4 provided options.
+  For EACH of the {{numberOfQuestions}} questions, you MUST provide the following fields:
+  1. "subject": A string, which MUST be one of "Physics", "Chemistry", or "Biology".
+  2. "question": A string containing the question text.
+  3. "options": An array of exactly 4 strings, representing the multiple-choice options.
+  4. "answer": A string, which MUST be identical to one of the 4 strings provided in the "options" array.
 
-  The test should cover a diverse range of topics from the class 11th and 12th syllabus for each subject.
-  Ensure the questions are challenging and accurately reflect typical exam standards.
-  Return the questions in JSON format, conforming to the provided output schema.
+  It is crucial that every single question object in the output array is complete and adheres to this structure. Do not omit any fields for any question.
+  The questions should cover a diverse range of topics from the specified syllabus for each subject and be of a standard reflecting typical exam difficulty.
+  The output must be a JSON object that strictly conforms to the provided output schema.
+  Pay close attention to the "required" fields in the schema for each question.
   `,
 });
 
@@ -71,3 +72,4 @@ const generateMockTestFlow = ai.defineFlow(
     return output!;
   }
 );
+
