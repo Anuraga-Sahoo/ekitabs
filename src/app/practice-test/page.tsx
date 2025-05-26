@@ -27,11 +27,12 @@ export default function PracticeTestPage() {
   const router = useRouter();
 
   const transformAiQuestions = (aiOutput: GeneratePracticeQuestionsOutput, config: PracticeTestConfig): AppQuestion[] => {
-    return aiOutput.questions.map((qText, index) => ({
+    return aiOutput.generatedMcqs.map((mcq, index) => ({
       id: `practice-${config.subject}-${index + 1}`,
       subject: config.subject,
-      questionText: qText,
-      correctAnswer: aiOutput.answers[index] || "N/A", // Fallback if answers mismatch
+      questionText: mcq.questionText,
+      options: mcq.options,
+      correctAnswer: mcq.correctAnswer,
     }));
   };
 
@@ -40,12 +41,12 @@ export default function PracticeTestPage() {
     setCurrentTestConfig(config);
     try {
       const aiOutput = await generatePracticeQuestions(config);
-      if (aiOutput && aiOutput.questions.length > 0) {
+      if (aiOutput && aiOutput.generatedMcqs.length > 0) {
         setQuestions(transformAiQuestions(aiOutput, config));
         setDurationMinutes(config.numberOfQuestions * PRACTICE_TEST_MINUTES_PER_QUESTION);
         setTestState('inProgress');
       } else {
-        toast({ title: "Error", description: "Failed to generate practice questions.", variant: "destructive" });
+        toast({ title: "Error", description: "Failed to generate practice MCQs.", variant: "destructive" });
         setTestState('setup');
       }
     } catch (error) {
@@ -125,7 +126,7 @@ export default function PracticeTestPage() {
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold text-center mb-8 text-primary">Create Practice Test</h1>
+      <h1 className="text-3xl font-bold text-center mb-8 text-primary">Create Practice MCQs</h1>
       <PracticeTestSetupForm onSubmit={handleSetupSubmit} isLoading={testState === 'loading'} />
     </div>
   );

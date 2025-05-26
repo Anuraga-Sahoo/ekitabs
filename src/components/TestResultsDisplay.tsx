@@ -1,13 +1,14 @@
 
 "use client";
 
-import type { TestResultItem, AppQuestion, TestScore } from '@/types';
+import type { TestResultItem, AppQuestion } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, XCircle, MinusCircle, Download, RotateCcw } from 'lucide-react';
 import { generateTestPdf } from '@/lib/pdfGenerator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface TestResultsDisplayProps {
   result: TestResultItem;
@@ -58,20 +59,42 @@ export default function TestResultsDisplay({ result, onRetake, onNavigateHome }:
 
         <div>
           <h3 className="text-xl font-semibold mb-2 text-center">Detailed Answers</h3>
-          <ScrollArea className="h-[300px] w-full rounded-md border p-4 bg-background">
+          <ScrollArea className="h-[400px] w-full rounded-md border p-4 bg-background">
             <div className="space-y-4">
               {questions.map((q, index) => {
                 const mark = getMark(q);
                 let badgeVariant: "default" | "destructive" | "secondary" = "secondary";
-                if (mark === 4) badgeVariant = "default"; // Greenish for correct
+                if (mark === 4) badgeVariant = "default";
                 if (mark === -1) badgeVariant = "destructive";
                 
                 return (
                 <div key={q.id} className="p-3 border rounded-md bg-card">
-                  <p className="font-semibold">Q{index + 1}: {q.questionText}</p>
-                  <p className="text-sm">Your Answer: <span className="italic">{q.userAnswer || 'Not Answered'}</span></p>
-                  <p className="text-sm">Correct Answer: <span className="font-medium text-green-700 dark:text-green-400">{q.correctAnswer}</span></p>
-                  <Badge variant={badgeVariant} className={`mt-1 ${mark === 4 ? 'bg-green-500 hover:bg-green-600' : ''}`}>
+                  <p className="font-semibold mb-2">Q{index + 1}: {q.questionText}</p>
+                  <div className="ml-2 my-2 space-y-1 text-sm">
+                    {q.options.map((option, optIndex) => {
+                      const isCorrectOption = option.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase();
+                      const isUserChoice = q.userAnswer && option.trim().toLowerCase() === q.userAnswer.trim().toLowerCase();
+                      
+                      return (
+                        <div 
+                          key={optIndex} 
+                          className={cn(
+                            "p-1.5 rounded-md flex items-center justify-between",
+                            isCorrectOption && "bg-green-100 dark:bg-green-800/30 border border-green-500",
+                            isUserChoice && !isCorrectOption && "bg-red-100 dark:bg-red-800/30 border border-red-500",
+                            isUserChoice && isCorrectOption && "ring-2 ring-offset-1 ring-offset-card ring-green-600 dark:ring-green-500",
+                            !isUserChoice && !isCorrectOption && "border border-transparent"
+                          )}
+                        >
+                          <span>{String.fromCharCode(65 + optIndex)}. {option}</span>
+                          {isCorrectOption && <CheckCircle className="h-4 w-4 text-green-600 ml-2 flex-shrink-0" />}
+                          {isUserChoice && !isCorrectOption && <XCircle className="h-4 w-4 text-red-600 ml-2 flex-shrink-0" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {!q.userAnswer && <p className="text-xs text-yellow-600 dark:text-yellow-400 ml-2 mb-1">Not Answered</p>}
+                  <Badge variant={badgeVariant} className={`mt-1 ${mark === 4 ? 'bg-green-500 hover:bg-green-600 text-white' : mark === -1 ? 'bg-red-500 hover:bg-red-600 text-white' : ''}`}>
                     {mark === 4 ? '+4 Marks' : mark === -1 ? '-1 Mark' : '0 Marks'}
                   </Badge>
                 </div>

@@ -5,11 +5,12 @@ import { useState, useEffect, useCallback } from 'react';
 import type { AppQuestion } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import TimerDisplay from './TimerDisplay';
 import { useTestTimer } from '@/hooks/useTestTimer';
-import { ArrowLeft, ArrowRight, CheckCircle, Save } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 interface TestInProgressProps {
   questions: AppQuestion[];
@@ -57,7 +58,7 @@ export default function TestInProgress({ questions, durationMinutes, onTestSubmi
   };
   
   if (!currentQuestion) {
-    return <p>No questions available.</p>; // Or a loading/error state
+    return <p>No questions available.</p>;
   }
 
   const progressPercentage = ((currentQuestionIndex + 1) / questions.length) * 100;
@@ -77,13 +78,22 @@ export default function TestInProgress({ questions, durationMinutes, onTestSubmi
         <CardContent className="space-y-4">
           <Progress value={progressPercentage} className="w-full h-2" />
           <p className="text-lg font-semibold leading-relaxed py-4 min-h-[60px]">{currentQuestion.questionText}</p>
-          <Textarea
-            placeholder="Type your answer here..."
+          
+          <RadioGroup
             value={userAnswers[currentQuestion.id] || ''}
-            onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-            rows={5}
-            className="resize-none text-base"
-          />
+            onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
+            className="space-y-2"
+          >
+            {currentQuestion.options.map((option, index) => (
+              <div key={index} className="flex items-center space-x-2 p-2 border rounded-md hover:bg-muted/50">
+                <RadioGroupItem value={option} id={`${currentQuestion.id}-option-${index}`} />
+                <Label htmlFor={`${currentQuestion.id}-option-${index}`} className="flex-1 cursor-pointer text-base">
+                  {String.fromCharCode(65 + index)}. {option}
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
+
         </CardContent>
         <CardFooter className="flex justify-between items-center">
           <Button variant="outline" onClick={goToPreviousQuestion} disabled={currentQuestionIndex === 0}>
@@ -101,14 +111,14 @@ export default function TestInProgress({ questions, durationMinutes, onTestSubmi
           )}
         </CardFooter>
       </Card>
-      {totalSecondsLeft <= 60 && isActive && (
+      {totalSecondsLeft <= 60 && totalSecondsLeft > 0 && isActive && (
          <p className="text-center text-destructive font-semibold">
            {totalSecondsLeft} seconds remaining!
          </p>
       )}
        {totalSecondsLeft === 0 && !isActive && (
          <p className="text-center text-destructive font-bold text-lg p-4 bg-destructive/10 rounded-md">
-           Time's up! Your test will be submitted automatically.
+           Time's up! Your test has been submitted.
          </p>
       )}
     </div>

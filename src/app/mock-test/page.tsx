@@ -16,7 +16,7 @@ import { useRouter } from 'next/navigation';
 
 
 const MOCK_TEST_DURATION_MINUTES = 180; // 3 hours
-const MOCK_TEST_NUM_QUESTIONS = 30; // Reduced for demo, original 360
+const MOCK_TEST_NUM_QUESTIONS = 180; // Updated to 180 questions
 
 export default function MockTestPage() {
   const [testState, setTestState] = useState<'idle' | 'loading' | 'inProgress' | 'completed'>('idle');
@@ -30,6 +30,7 @@ export default function MockTestPage() {
       id: `mock-${index + 1}`,
       subject: q.subject,
       questionText: q.question,
+      options: q.options,
       correctAnswer: q.answer,
     }));
   };
@@ -115,8 +116,7 @@ export default function MockTestPage() {
         <CardHeader>
           <CardTitle className="text-3xl font-bold">Mock Test Challenge</CardTitle>
           <CardDescription className="text-lg">
-            Ready to test your knowledge? This is a {MOCK_TEST_NUM_QUESTIONS}-question mock test with a 3-hour time limit.
-            (Note: Number of questions reduced for demo purposes).
+            Ready to test your knowledge? This is a {MOCK_TEST_NUM_QUESTIONS}-MCQ mock test based on Class 11th &amp; 12th syllabus with a {MOCK_TEST_DURATION_MINUTES / 60}-hour time limit.
           </CardDescription>
         </CardHeader>
         <CardContent>

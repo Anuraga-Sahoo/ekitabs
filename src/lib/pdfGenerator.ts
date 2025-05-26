@@ -18,7 +18,7 @@ export function generateTestPdf(result: TestResultItem): void {
 
   // Test Details
   doc.setFontSize(12);
-  doc.text(`Test Type: ${result.testType === 'mock' ? 'Mock Test' : 'Practice Test'}`, 15, 35);
+  doc.text(`Test Type: ${result.testType === 'mock' ? 'Mock Test (MCQ)' : 'Practice Test (MCQ)'}`, 15, 35);
   doc.text(`Date: ${new Date(result.dateCompleted).toLocaleDateString()}`, 15, 42);
   if (result.testType === 'practice' && result.config) {
     doc.text(`Subject: ${result.config.subject}`, 15, 49);
@@ -36,33 +36,39 @@ export function generateTestPdf(result: TestResultItem): void {
     `Unanswered: ${result.score.unanswered}`,
     `Total Score: ${result.score.totalScore} / ${result.score.maxScore}`,
   ];
-  scoreDetails.forEach((text, index) => {
-    doc.text(text, 15, 82 + index * 7);
+  let currentY = 82;
+  scoreDetails.forEach((text) => {
+    doc.text(text, 15, currentY);
+    currentY += 7;
   });
   
   // Questions and Answers Table
+  currentY += 10; // Add some space before table
   doc.setFontSize(14);
-  doc.text('Questions & Answers', 15, 82 + scoreDetails.length * 7 + 10);
+  doc.text('Questions & Answers', 15, currentY);
+  currentY += 7;
 
-  const tableColumn = ["#", "Question", "Your Answer", "Correct Answer", "Marks"];
+  const tableColumn = ["#", "Question & Options", "Your Answer", "Correct Answer", "Marks"];
   const tableRows: (string | number)[][] = [];
 
   result.questions.forEach((q, index) => {
-    const userAnswer = q.userAnswer || 'Not Answered';
+    const userAnswerDisplay = q.userAnswer || 'Not Answered';
     let marks = 0;
-    if (userAnswer !== 'Not Answered') {
-        // Simple case-insensitive comparison for text answers
-        if (userAnswer.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()) {
+    if (q.userAnswer && q.userAnswer.trim() !== "") {
+        if (q.userAnswer.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()) {
             marks = 4;
         } else {
             marks = -1;
         }
     }
 
+    const optionsString = q.options.map((opt, i) => `${String.fromCharCode(65 + i)}. ${opt}`).join('\n');
+    const questionWithOptions = `${q.questionText}\n\nOptions:\n${optionsString}`;
+
     const questionData = [
       index + 1,
-      q.questionText,
-      userAnswer,
+      questionWithOptions,
+      userAnswerDisplay,
       q.correctAnswer,
       marks,
     ];
@@ -72,25 +78,27 @@ export function generateTestPdf(result: TestResultItem): void {
   doc.autoTable({
     head: [tableColumn],
     body: tableRows,
-    startY: 82 + scoreDetails.length * 7 + 17,
+    startY: currentY,
     theme: 'grid',
     headStyles: { fillColor: [75, 0, 130] }, // Primary color: Deep Indigo
-    styles: { fontSize: 8, cellPadding: 2 },
+    styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
     columnStyles: {
-      0: { cellWidth: 10 }, // #
-      1: { cellWidth: 'auto' }, // Question
-      2: { cellWidth: 'auto' }, // Your Answer
-      3: { cellWidth: 'auto' }, // Correct Answer
-      4: { cellWidth: 15 }, // Marks
+      0: { cellWidth: 10, halign: 'center' }, // #
+      1: { cellWidth: 95 }, // Question & Options
+      2: { cellWidth: 30 }, // Your Answer
+      3: { cellWidth: 30 }, // Correct Answer
+      4: { cellWidth: 15, halign: 'center' }, // Marks
     },
     didDrawPage: (data) => {
         // Footer
-        const pageCount = doc.internal.pages.length;
-        doc.setFontSize(8);
-        doc.text(`Page ${data.pageNumber} of ${pageCount -1 }`, data.settings.margin.left, doc.internal.pageSize.height - 10);
+        const pageCount = doc.internal.pages.length; // Get total page count from the `doc` object
+        if (pageCount > 1 || data.pageNumber > 0) { // Only add footer if there are pages or it's not the first pass (which can be empty)
+          doc.setFontSize(8);
+          doc.text(`Page ${data.pageNumber} of ${doc.internal.getNumberOfPages()}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
+        }
     }
   });
   
-  const fileName = `TestPrepAI_${result.testType}_${new Date(result.dateCompleted).toISOString().split('T')[0]}.pdf`;
+  const fileName = `TestPrepAI_${result.testType}_MCQ_${new Date(result.dateCompleted).toISOString().split('T')[0]}.pdf`;
   doc.save(fileName);
 }

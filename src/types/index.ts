@@ -3,9 +3,9 @@ export interface AppQuestion {
   id: string;
   subject: string;
   questionText: string;
+  options: string[]; // For MCQs
   correctAnswer: string;
   userAnswer?: string;
-  options?: string[]; // For MCQs, if supported in future
 }
 
 export interface Test {
@@ -39,3 +39,4 @@ export interface TestResultItem {
   questions: AppQuestion[];
   config?: PracticeTestConfig;
 }
+
