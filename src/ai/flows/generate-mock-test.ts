@@ -22,10 +22,10 @@ const GenerateMockTestInputSchema = z.object({
 export type GenerateMockTestInput = z.infer<typeof GenerateMockTestInputSchema>;
 
 const QuestionSchema = z.object({
-  subject: z.enum(['Physics', 'Chemistry', 'Biology']).describe('The subject of the question.'),
-  question: z.string().describe('The question text.'),
-  options: z.array(z.string()).length(4).describe('An array of 4 multiple choice options.'),
-  answer: z.string().describe('The correct answer to the question, which must be one of the options.'),
+  subject: z.enum(['Physics', 'Chemistry', 'Biology']).describe('The subject of the question. This field is MANDATORY for every question.'),
+  question: z.string().describe('The question text. This field is MANDATORY for every question.'),
+  options: z.array(z.string()).length(4).describe('An array of 4 multiple choice options. This field is MANDATORY for every question.'),
+  answer: z.string().describe('The correct answer to the question, which must be one of the options. This field is MANDATORY for every question.'),
 });
 
 const GenerateMockTestOutputSchema = z.object({
@@ -43,21 +43,22 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateMockTestOutputSchema},
   prompt: `You are an expert test generator. Your task is to create a mock Multiple Choice Question (MCQ) test based on the class 11th and 12th syllabus.
 
-  Generate exactly {{numberOfQuestions}} MCQs in total, with the following subject distribution:
-  - Physics: 45 MCQs
-  - Chemistry: 45 MCQs
-  - Biology (covering both Botany and Zoology): 90 MCQs
+  Generate exactly {{numberOfQuestions}} MCQs in total.
+  The distribution MUST be as follows:
+  - Physics: Exactly 45 MCQs. Each of these questions MUST have "subject": "Physics".
+  - Chemistry: Exactly 45 MCQs. Each of these questions MUST have "subject": "Chemistry".
+  - Biology (covering both Botany and Zoology): Exactly 90 MCQs. Each of these questions MUST have "subject": "Biology".
 
-  For EACH of the {{numberOfQuestions}} questions, you MUST provide the following fields:
-  1. "subject": A string, which MUST be one of "Physics", "Chemistry", or "Biology".
-  2. "question": A string containing the question text.
-  3. "options": An array of exactly 4 strings, representing the multiple-choice options.
-  4. "answer": A string, which MUST be identical to one of the 4 strings provided in the "options" array.
+  It is CRITICAL that for EACH of the {{numberOfQuestions}} questions, you provide ALL of the following fields:
+  1. "subject": A string, which MUST be one of "Physics", "Chemistry", or "Biology". THIS FIELD IS ABSOLUTELY MANDATORY FOR EVERY QUESTION.
+  2. "question": A string containing the question text. THIS FIELD IS ABSOLUTELY MANDATORY FOR EVERY QUESTION.
+  3. "options": An array of exactly 4 strings, representing the multiple-choice options. THIS FIELD IS ABSOLUTELY MANDATORY FOR EVERY QUESTION.
+  4. "answer": A string, which MUST be identical to one of the 4 strings provided in the "options" array. THIS FIELD IS ABSOLUTELY MANDATORY FOR EVERY QUESTION.
 
-  It is crucial that every single question object in the output array is complete and adheres to this structure. Do not omit any fields for any question.
+  Do not, under any circumstances, omit any of these four fields for any question.
   The questions should cover a diverse range of topics from the specified syllabus for each subject and be of a standard reflecting typical exam difficulty.
   The output must be a JSON object that strictly conforms to the provided output schema.
-  Pay close attention to the "required" fields in the schema for each question.
+  Pay extremely close attention to the "required" fields in the schema for each question. Ensure every question has a "subject", "question", "options", and "answer".
   `,
 });
 
