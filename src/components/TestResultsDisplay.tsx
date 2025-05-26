@@ -1,0 +1,100 @@
+
+"use client";
+
+import type { TestResultItem, AppQuestion, TestScore } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { CheckCircle, XCircle, MinusCircle, Download, RotateCcw } from 'lucide-react';
+import { generateTestPdf } from '@/lib/pdfGenerator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+
+interface TestResultsDisplayProps {
+  result: TestResultItem;
+  onRetake?: () => void; // For practice tests
+  onNavigateHome?: () => void;
+}
+
+const getMark = (question: AppQuestion): number => {
+    if (!question.userAnswer || question.userAnswer.trim() === "") return 0; // Unanswered
+    if (question.userAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase()) return 4; // Correct
+    return -1; // Incorrect
+};
+
+export default function TestResultsDisplay({ result, onRetake, onNavigateHome }: TestResultsDisplayProps) {
+  const { score, questions, testType } = result;
+
+  return (
+    <Card className="w-full max-w-3xl mx-auto shadow-2xl">
+      <CardHeader className="text-center">
+        <CardTitle className="text-3xl font-bold text-primary">Test Results</CardTitle>
+        <CardDescription className="text-lg">
+          Here's how you performed in your {testType} test.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <Card className="bg-secondary/50">
+          <CardHeader>
+            <CardTitle className="text-xl">Score Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-4 text-base">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <span>Correct: {score.correct}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <XCircle className="h-5 w-5 text-red-600" />
+              <span>Incorrect: {score.incorrect}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <MinusCircle className="h-5 w-5 text-yellow-500" />
+              <span>Unanswered: {score.unanswered}</span>
+            </div>
+            <div className="font-bold text-lg col-span-2 text-center pt-2">
+              Total Score: {score.totalScore} / {score.maxScore}
+            </div>
+          </CardContent>
+        </Card>
+
+        <div>
+          <h3 className="text-xl font-semibold mb-2 text-center">Detailed Answers</h3>
+          <ScrollArea className="h-[300px] w-full rounded-md border p-4 bg-background">
+            <div className="space-y-4">
+              {questions.map((q, index) => {
+                const mark = getMark(q);
+                let badgeVariant: "default" | "destructive" | "secondary" = "secondary";
+                if (mark === 4) badgeVariant = "default"; // Greenish for correct
+                if (mark === -1) badgeVariant = "destructive";
+                
+                return (
+                <div key={q.id} className="p-3 border rounded-md bg-card">
+                  <p className="font-semibold">Q{index + 1}: {q.questionText}</p>
+                  <p className="text-sm">Your Answer: <span className="italic">{q.userAnswer || 'Not Answered'}</span></p>
+                  <p className="text-sm">Correct Answer: <span className="font-medium text-green-700 dark:text-green-400">{q.correctAnswer}</span></p>
+                  <Badge variant={badgeVariant} className={`mt-1 ${mark === 4 ? 'bg-green-500 hover:bg-green-600' : ''}`}>
+                    {mark === 4 ? '+4 Marks' : mark === -1 ? '-1 Mark' : '0 Marks'}
+                  </Badge>
+                </div>
+              )})}
+            </div>
+          </ScrollArea>
+        </div>
+      </CardContent>
+      <CardFooter className="flex flex-col sm:flex-row justify-center gap-4 pt-6">
+        <Button onClick={() => generateTestPdf(result)} variant="outline">
+          <Download className="mr-2 h-4 w-4" /> Download PDF
+        </Button>
+        {onRetake && testType === 'practice' && (
+          <Button onClick={onRetake} variant="secondary">
+            <RotateCcw className="mr-2 h-4 w-4" /> Retake Practice
+          </Button>
+        )}
+         {onNavigateHome && (
+          <Button onClick={onNavigateHome} variant="default">
+            Back to Home
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
+  );
+}
