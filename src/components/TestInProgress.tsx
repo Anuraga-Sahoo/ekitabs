@@ -12,14 +12,14 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import TestInProgressHeader from './TestInProgressHeader';
 import TestInProgressSidebar from './TestInProgressSidebar';
-import LoadingSpinner from './LoadingSpinner'; // Added import
+import LoadingSpinner from './LoadingSpinner'; 
 
 interface TestInProgressProps {
   questions: AppQuestion[];
   durationMinutes: number;
   onTestSubmit: (answers: Record<string, string>, originalQuizId: string, timeTakenSeconds: number) => void;
   testType: 'mock' | 'practice';
-  originalQuizId: string; // ID of the original set of questions
+  originalQuizId: string; 
   practiceTestConfig?: { subject: string; chapter: string; };
 }
 
@@ -36,16 +36,15 @@ export default function TestInProgress({
   const [markedForReview, setMarkedForReview] = useState<Set<string>>(new Set());
   const [visitedQuestions, setVisitedQuestions] = useState<Set<string>>(new Set());
   
-  const handleTimerEnd = useCallback(() => {
-    const timeTaken = (durationMinutes * 60) - totalSecondsLeft; // totalSecondsLeft would be 0 or close
+  const handleTimerEndCallback = useCallback(() => {
+    const timeTaken = (durationMinutes * 60) - totalSecondsLeft; 
     onTestSubmit(userAnswers, originalQuizId, timeTaken);
   }, [onTestSubmit, userAnswers, originalQuizId, durationMinutes]);
 
-  const { minutes, seconds, isActive, startTimer, stopTimer, totalSecondsLeft } = useTestTimer(durationMinutes, handleTimerEnd);
+  const { minutes, seconds, isActive, startTimer, stopTimer, totalSecondsLeft } = useTestTimer(durationMinutes, handleTimerEndCallback);
 
   useEffect(() => {
     startTimer();
-    // Clear answers and marks from previous attempts if questions are reloaded (e.g. for a retake)
     setUserAnswers({});
     setMarkedForReview(new Set());
     setVisitedQuestions(new Set());
@@ -54,10 +53,10 @@ export default function TestInProgress({
       setVisitedQuestions(prev => new Set(prev).add(questions[0].id));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [questions, startTimer]); // Rerun if questions array instance changes, startTimer has its own deps
+  }, [questions, startTimer]); 
 
   useEffect(() => {
-    return () => stopTimer(); // Cleanup timer on unmount
+    return () => stopTimer(); 
   }, [stopTimer]);
 
   useEffect(() => {
@@ -98,7 +97,7 @@ export default function TestInProgress({
     if(!currentQuestion) return;
     setMarkedForReview(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(currentQuestion.id)) { // Toggle behavior
+      if (newSet.has(currentQuestion.id)) { 
         newSet.delete(currentQuestion.id);
       } else {
         newSet.add(currentQuestion.id);
@@ -200,11 +199,11 @@ export default function TestInProgress({
             </Button>
             
             {currentQuestionIndex < questions.length - 1 ? (
-              <Button onClick={goToNextQuestion} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+              <Button onClick={goToNextQuestion} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 Save & Next <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
-              <Button onClick={handleSubmitTest} className="bg-green-600 hover:bg-green-700 text-white">
+              <Button onClick={handleSubmitTest} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 <CheckCircle className="mr-2 h-4 w-4" /> Submit Test
               </Button>
             )}

@@ -67,13 +67,13 @@ export default function PracticeTestSetupForm({ onSubmit, isLoading }: PracticeT
   useEffect(() => {
     if (selectedSubject) {
       setAvailableChapters(chapterData[selectedSubject] || []);
-      form.setValue("chapter", ""); // Reset chapter when subject changes
+      form.setValue("chapter", ""); 
     } else {
       setAvailableChapters([]);
-      form.setValue("chapter", ""); // Also reset chapter if subject is cleared
+      form.setValue("chapter", ""); 
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSubject]); // Removed form.setValue from dependency array as it's stable
+  }, [selectedSubject]); 
 
   function handleSubmit(values: PracticeTestSetupFormValues) {
     onSubmit(values);
@@ -119,7 +119,7 @@ export default function PracticeTestSetupForm({ onSubmit, isLoading }: PracticeT
                 <FormLabel>Chapter</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  value={field.value} // Ensure value is controlled
+                  value={field.value} 
                   disabled={!selectedSubject || availableChapters.length === 0}
                 >
                   <FormControl>
@@ -133,13 +133,6 @@ export default function PracticeTestSetupForm({ onSubmit, isLoading }: PracticeT
                         {chapterName}
                       </SelectItem>
                     ))}
-                    {/*
-                      Removed the else branch that caused the error:
-                      availableChapters.length === 0 ? (
-                        <SelectItem value="" disabled> Please select a subject first </SelectItem>
-                      )
-                      The disabled state of the Select and its placeholder handle this.
-                    */}
                   </SelectContent>
                 </Select>
                 <FormDescription>
@@ -193,7 +186,7 @@ export default function PracticeTestSetupForm({ onSubmit, isLoading }: PracticeT
           />
         </div>
 
-        <Button type="submit" disabled={isLoading} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+        <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

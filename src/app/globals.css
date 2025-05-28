@@ -9,7 +9,7 @@ body {
 
 @layer base {
   :root {
-    --background: 0 0% 100%; /* Changed from light gray to white */
+    --background: 0 0% 100%; /* White */
     --foreground: 0 0% 3.9%; /* Default dark text */
 
     --card: 0 0% 100%;
@@ -18,24 +18,26 @@ body {
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 3.9%;
 
-    --primary: 271 100% 25.3%; /* Deep Indigo #4B0082 */
+    /* Updated Primary to Brand Green */
+    --primary: 145 63% 42%; /* Brand Green #3AA663 */
     --primary-foreground: 0 0% 98%; /* Light text on primary */
 
-    --secondary: 271 30% 85%; /* Lighter indigo for secondary elements */
-    --secondary-foreground: 271 100% 25.3%; /* Dark text on secondary */
+    --secondary: 240 4.8% 95.9%; /* Default light gray for secondary elements */
+    --secondary-foreground: 240 5.9% 10%; /* Dark text on secondary */
 
-    --muted: 0 0% 96.1%; /* Slightly darker than background for muted elements */
-    --muted-foreground: 0 0% 45.1%;
+    --muted: 240 4.8% 95.9%; 
+    --muted-foreground: 240 3.8% 46.1%;
 
-    --accent: 180 100% 25.1%; /* Teal #008080 */
+    /* Updated Accent to Brand Blue */
+    --accent: 205 80% 55%; /* Brand Blue #4CA1E8 */
     --accent-foreground: 0 0% 98%; /* Light text on accent */
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 89.8%; /* Border color complementary to white */
-    --input: 0 0% 98%; /* Input background, slightly off-white */
-    --ring: 271 100% 25.3%; /* Ring color same as primary */
+    --border: 0 0% 89.8%; 
+    --input: 0 0% 98%; 
+    --ring: 145 63% 42%; /* Ring color same as new primary (Brand Green) */
     
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -54,7 +56,7 @@ body {
     --sidebar-border: var(--border);
     --sidebar-ring: var(--ring);
 
-    /* New Brand Colors from Testbook Image */
+    /* Brand Colors from Testbook Image (already added) */
     --brand-green: 145 63% 42%; /* approx #3AA663 */
     --brand-green-light: 145 70% 94%; /* approx #E6F7ED */
     --brand-blue: 205 80% 55%; /* approx #4CA1E8 */
@@ -64,30 +66,32 @@ body {
     --background: 240 6% 10%; /* Dark gray, almost black */
     --foreground: 0 0% 98%; /* Light text */
 
-    --card: 240 6% 12%; /* Slightly lighter than background for cards */
+    --card: 240 6% 12%; 
     --card-foreground: 0 0% 98%;
 
     --popover: 240 6% 10%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 271 80% 65%; /* Lighter Indigo for dark mode */
+    /* Updated Primary for Dark Mode */
+    --primary: 145 55% 50%; /* Brighter Brand Green for dark mode */
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 271 50% 35%; /* Darker, muted indigo */
+    --secondary: 240 3.7% 15.9%; 
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 240 5% 20%; /* Darker muted shade */
-    --muted-foreground: 0 0% 63.9%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
 
-    --accent: 180 70% 50%; /* Brighter Teal for dark mode */
+    /* Updated Accent for Dark Mode */
+    --accent: 205 70% 60%; /* Brighter Brand Blue for dark mode */
     --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 70% 50%;
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 4% 25%; /* Dark border */
-    --input: 240 4% 15%; /* Dark input background */
-    --ring: 271 80% 65%; /* Ring color same as primary (dark) */
+    --border: 240 3.7% 25%; 
+    --input: 240 3.7% 15%; 
+    --ring: 145 55% 50%; /* Ring color same as new primary (dark) */
     
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
@@ -105,7 +109,7 @@ body {
     --sidebar-border: var(--border);
     --sidebar-ring: var(--ring);
 
-    /* New Brand Colors for Dark Mode (adjust as needed) */
+    /* New Brand Colors for Dark Mode (already added, ensure consistency) */
     --brand-green: 145 55% 50%; 
     --brand-green-light: 145 30% 20%; 
     --brand-blue: 205 70% 60%;
