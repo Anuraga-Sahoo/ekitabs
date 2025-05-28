@@ -41,7 +41,7 @@ export default function PracticeTestPage() {
     }));
   };
 
-  const handleSetupSubmit = async (config: PracticeTestConfig) => {
+  const handleSetupSubmit = useCallback(async (config: PracticeTestConfig) => {
     setTestState('loading');
     setCurrentTestConfig(config);
     try {
@@ -74,7 +74,7 @@ export default function PracticeTestPage() {
       toast({ title: "Error", description: "An error occurred while generating the practice test.", variant: "destructive" });
       setTestState('setup');
     }
-  };
+  }, [toast]);
   
   const startRetakeTest = useCallback((quizId: string) => {
     setTestState('loading');
@@ -99,6 +99,38 @@ export default function PracticeTestPage() {
         startRetakeTest(retakeQuizId);
     }
   }, [searchParams, startRetakeTest, testState]);
+
+  useEffect(() => {
+    const autoStartNew = searchParams.get('autoStartNew');
+    const subject = searchParams.get('subject');
+    const chapter = searchParams.get('chapter');
+    const numberOfQuestionsStr = searchParams.get('numberOfQuestions');
+    const complexityLevel = searchParams.get('complexityLevel') as PracticeTestConfig['complexityLevel'] | null;
+
+    if (
+      autoStartNew === 'true' &&
+      subject &&
+      chapter &&
+      numberOfQuestionsStr &&
+      complexityLevel &&
+      testState === 'setup' &&
+      !searchParams.get('retakeQuizId') 
+    ) {
+      const numberOfQuestions = parseInt(numberOfQuestionsStr, 10);
+      if (!isNaN(numberOfQuestions) && numberOfQuestions > 0) {
+        const config: PracticeTestConfig = {
+          subject,
+          chapter,
+          numberOfQuestions,
+          complexityLevel,
+        };
+        handleSetupSubmit(config);
+      } else {
+         toast({ title: "Error", description: "Invalid number of questions for auto-starting test.", variant: "destructive" });
+      }
+    }
+  }, [searchParams, testState, handleSetupSubmit, toast]);
+
 
   const handleSubmitTest = (userAnswers: Record<string, string>, originalQuizId: string, timeTakenSeconds: number) => {
     if (!currentTestConfig || !currentOriginalQuizId) {
@@ -132,7 +164,7 @@ export default function PracticeTestPage() {
     const score: TestScore = { correct, incorrect, unanswered, totalScore, maxScore };
     const resultData: TestResultItem = {
       testAttemptId: `practice-attempt-${Date.now()}`,
-      originalQuizId: currentOriginalQuizId, // Use state variable
+      originalQuizId: currentOriginalQuizId, 
       testType: 'practice',
       testTitle: testTitle,
       dateCompleted: new Date().toISOString(),
@@ -175,7 +207,7 @@ export default function PracticeTestPage() {
   }
 
   if (testState === 'completed' && testResult) {
-    return <TestResultsDisplay result={testResult} onNavigateHome={() => router.push('/')} />;
+    return <TestResultsDisplay result={testResult} />;
   }
 
   // Default to setup form
@@ -186,3 +218,4 @@ export default function PracticeTestPage() {
     </div>
   );
 }
+

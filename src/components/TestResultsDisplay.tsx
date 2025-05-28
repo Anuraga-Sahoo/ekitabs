@@ -46,7 +46,7 @@ interface SubjectPerformance {
 }
 
 export default function TestResultsDisplay({ result }: TestResultsDisplayProps) {
-  const { score, questions, testType, originalQuizId, testTitle, timeTakenSeconds } = result;
+  const { score, questions, testType, originalQuizId, testTitle, timeTakenSeconds, config } = result;
   const router = useRouter();
 
   const handleRetakeTest = () => {
@@ -61,8 +61,19 @@ export default function TestResultsDisplay({ result }: TestResultsDisplayProps) 
   
   const handleStartNextQuiz = () => {
     if (testType === 'mock') {
-      router.push('/mock-test');
+      router.push('/mock-test'); // This will start a new mock test
+    } else if (testType === 'practice' && config) {
+      // Navigate to practice test page with config to auto-start a new test on the same topic
+      const queryParams = new URLSearchParams({
+        subject: config.subject,
+        chapter: config.chapter,
+        numberOfQuestions: String(config.numberOfQuestions),
+        complexityLevel: config.complexityLevel,
+        autoStartNew: 'true',
+      });
+      router.push(`/practice-test?${queryParams.toString()}`);
     } else {
+      // Fallback for practice test if config is missing (should not happen ideally)
       router.push('/practice-test');
     }
   };
@@ -310,7 +321,3 @@ export default function TestResultsDisplay({ result }: TestResultsDisplayProps) 
     </div>
   );
 }
-
-    
-
-    
