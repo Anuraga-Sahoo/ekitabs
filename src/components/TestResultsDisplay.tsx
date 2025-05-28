@@ -144,7 +144,7 @@ export default function TestResultsDisplay({ result }: TestResultsDisplayProps) 
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">YOUR SCORE</h2>
             <p className="text-4xl font-bold text-primary my-1">{score.totalScore} / {score.maxScore}</p>
             <Separator className="my-4 w-3/4" />
-            <div className="grid grid-cols-3 gap-2 w-full text-center mt-2">
+            <div className="grid grid-cols-2 gap-4 w-full text-center mt-4">
               <div>
                 <p className="text-xs text-muted-foreground uppercase">Correct</p>
                 <p className="text-2xl font-semibold text-green-600">{score.correct}</p>
@@ -154,14 +154,14 @@ export default function TestResultsDisplay({ result }: TestResultsDisplayProps) 
                 <p className="text-2xl font-semibold text-red-600">{score.incorrect}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase">Time Taken</p>
-                <p className="text-xl font-semibold">{formatTimeTaken(timeTakenSeconds)}</p>
-              </div>
-            </div>
-             <div className="mt-3 w-full text-center">
                 <p className="text-xs text-muted-foreground uppercase">Unanswered</p>
                 <p className="text-2xl font-semibold text-yellow-500">{score.unanswered}</p>
               </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase">Time Taken</p>
+                <p className="text-2xl font-semibold">{formatTimeTaken(timeTakenSeconds)}</p>
+              </div>
+            </div>
           </div>
 
           {/* Right Column: Your Answers Grid & Actions */}
@@ -310,5 +310,7 @@ export default function TestResultsDisplay({ result }: TestResultsDisplayProps) 
     </div>
   );
 }
+
+    
 
     
