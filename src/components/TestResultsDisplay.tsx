@@ -4,7 +4,7 @@
 import type { TestResultItem, AppQuestion } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, XCircle, MinusCircle, Download, RotateCcw, HomeIcon, BookOpen, TrendingUp, TrendingDown, BarChart3, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, MinusCircle, Download, RotateCcw, HomeIcon, BookOpen, TrendingUp, TrendingDown, BarChart3, Clock, Award, Eye } from 'lucide-react';
 import { generateTestPdf } from '@/lib/pdfGenerator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,6 @@ import { Separator } from '@/components/ui/separator';
 
 interface TestResultsDisplayProps {
   result: TestResultItem;
-  onNavigateHome?: () => void;
 }
 
 const getMark = (question: AppQuestion): number => {
@@ -46,7 +45,7 @@ interface SubjectPerformance {
   percentage: number;
 }
 
-export default function TestResultsDisplay({ result, onNavigateHome }: TestResultsDisplayProps) {
+export default function TestResultsDisplay({ result }: TestResultsDisplayProps) {
   const { score, questions, testType, originalQuizId, testTitle, timeTakenSeconds } = result;
   const router = useRouter();
 
@@ -56,9 +55,26 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
       router.push(`${path}?retakeQuizId=${originalQuizId}`);
     } else {
       console.error("OriginalQuizId not found, cannot retake.");
-      if (onNavigateHome) onNavigateHome();
+      router.push('/'); // Fallback to home
     }
   };
+  
+  const handleStartNextQuiz = () => {
+    if (testType === 'mock') {
+      router.push('/mock-test');
+    } else {
+      router.push('/practice-test');
+    }
+  };
+
+  const handleViewSolution = () => {
+    document.getElementById('detailed-answers-section')?.scrollIntoView({ behavior: 'smooth' });
+  };
+  
+  const handleScrollToQuestion = (questionId: string) => {
+    document.getElementById(`detail-q-${questionId}`)?.scrollIntoView({ behavior: 'smooth' });
+  };
+
 
   const attemptedQuestions = score.correct + score.incorrect;
   const totalQuestions = questions.length;
@@ -68,7 +84,7 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
     const performanceBySubject: Record<string, { total: number; correct: number; incorrect: number; unanswered: number; marksObtained: number; maxMarks: number }> = {};
 
     questions.forEach(q => {
-      const subjectKey = q.subject || "Uncategorized"; // Handle cases where subject might be missing, though schema should prevent this.
+      const subjectKey = q.subject || "Uncategorized"; 
       if (!performanceBySubject[subjectKey]) {
         performanceBySubject[subjectKey] = { total: 0, correct: 0, incorrect: 0, unanswered: 0, marksObtained: 0, maxMarks: 0 };
       }
@@ -112,56 +128,90 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
 
 
   return (
-    <Card className="w-full max-w-5xl mx-auto shadow-2xl my-4 md:my-8">
-      <CardHeader className="text-center pb-4">
-        <CardTitle className="text-3xl md:text-4xl font-bold text-primary">Test Results</CardTitle>
-        <CardDescription className="text-lg md:text-xl">
-          Here's how you performed in your {testTitle || testType} test.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6 md:space-y-8 px-4 md:px-6">
-        
-        <Card className="bg-card border shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl flex items-center"><BookOpen className="mr-2 h-5 w-5 text-primary" />Overall Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-base">
-            <div className="flex items-center space-x-2 p-2 bg-secondary/30 rounded-md">
-              <span className="font-semibold">Total Questions:</span>
-              <span>{totalQuestions}</span>
-            </div>
-            <div className="flex items-center space-x-2 p-2 bg-secondary/30 rounded-md">
-              <span className="font-semibold">Attempted:</span>
-              <span>{attemptedQuestions}</span>
-            </div>
-             <div className="flex items-center space-x-2 p-2 bg-secondary/30 rounded-md">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="font-semibold">Correct:</span>
-              <span>{score.correct}</span>
-            </div>
-            <div className="flex items-center space-x-2 p-2 bg-secondary/30 rounded-md">
-              <XCircle className="h-5 w-5 text-red-600" />
-              <span className="font-semibold">Incorrect:</span>
-              <span>{score.incorrect}</span>
-            </div>
-            <div className="flex items-center space-x-2 p-2 bg-secondary/30 rounded-md">
-              <MinusCircle className="h-5 w-5 text-yellow-500" />
-              <span className="font-semibold">Unanswered:</span>
-              <span>{score.unanswered}</span>
-            </div>
-             <div className="flex items-center space-x-2 p-2 bg-secondary/30 rounded-md">
-                <Clock className="h-5 w-5 text-blue-500" />
-                <span className="font-semibold">Time Taken:</span>
-                <span>{formatTimeTaken(timeTakenSeconds)}</span> 
-            </div>
-            <div className="font-bold text-lg col-span-full text-center pt-3 text-primary">
-              Total Score: {score.totalScore} / {score.maxScore}
-            </div>
-          </CardContent>
-        </Card>
+    <div className="min-h-screen bg-background">
+      {/* Top Banner */}
+      <div className="bg-[hsl(var(--brand-blue))] text-white py-6 md:py-8 text-center shadow-md">
+        <h1 className="text-3xl md:text-4xl font-bold">Good Try!</h1>
+        <p className="text-lg md:text-xl mt-1">Keep Practicing, Keep Improving.</p>
+      </div>
 
+      {/* Main Dashboard Content */}
+      <div className="container mx-auto px-4 py-6 md:py-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Left Column: Score & Stats */}
+          <div className="md:col-span-1 bg-card p-6 rounded-lg shadow-lg flex flex-col items-center text-center">
+            <Award className="h-16 w-16 text-yellow-500 mb-3" />
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">YOUR SCORE</h2>
+            <p className="text-4xl font-bold text-primary my-1">{score.totalScore} / {score.maxScore}</p>
+            <Separator className="my-4 w-3/4" />
+            <div className="grid grid-cols-3 gap-2 w-full text-center mt-2">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase">Correct</p>
+                <p className="text-2xl font-semibold text-green-600">{score.correct}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase">Incorrect</p>
+                <p className="text-2xl font-semibold text-red-600">{score.incorrect}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase">Time Taken</p>
+                <p className="text-xl font-semibold">{formatTimeTaken(timeTakenSeconds)}</p>
+              </div>
+            </div>
+             <div className="mt-3 w-full text-center">
+                <p className="text-xs text-muted-foreground uppercase">Unanswered</p>
+                <p className="text-2xl font-semibold text-yellow-500">{score.unanswered}</p>
+              </div>
+          </div>
+
+          {/* Right Column: Your Answers Grid & Actions */}
+          <div className="md:col-span-2 bg-card p-6 rounded-lg shadow-lg">
+            <h2 className="text-lg font-semibold text-foreground mb-4">YOUR ANSWERS</h2>
+            <ScrollArea className="h-[180px] pr-3 mb-6">
+              <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2">
+                {questions.map((q, index) => {
+                  const mark = getMark(q);
+                  let bgColor = 'bg-muted hover:bg-muted/80'; // Unanswered
+                  if (mark === 4) bgColor = 'bg-[hsl(var(--brand-green))] hover:bg-[hsl(var(--brand-green))]/90 text-white'; // Correct
+                  else if (mark === -1) bgColor = 'bg-red-500 hover:bg-red-600 text-white'; // Incorrect
+                  
+                  return (
+                    <Button
+                      key={q.id}
+                      variant="outline"
+                      className={cn(
+                        "h-10 w-10 p-0 rounded-full flex items-center justify-center text-sm font-medium border",
+                        bgColor,
+                        "border-transparent" 
+                      )}
+                      onClick={() => handleScrollToQuestion(q.id)}
+                    >
+                      {index + 1}
+                    </Button>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Button onClick={handleViewSolution} variant="outline" size="lg" className="w-full">
+                <Eye className="mr-2 h-5 w-5" /> View Solution
+              </Button>
+              <Button onClick={handleStartNextQuiz} size="lg" className="w-full bg-[hsl(var(--brand-green))] hover:bg-[hsl(var(--brand-green))]/90 text-primary-foreground">
+                Start Next Quiz
+              </Button>
+              <Button onClick={handleRetakeTest} variant="outline" size="lg" className="w-full">
+                <RotateCcw className="mr-2 h-5 w-5" /> Retake This Test
+              </Button>
+              <Button onClick={() => generateTestPdf(result)} variant="outline" size="lg" className="w-full">
+                <Download className="mr-2 h-5 w-5" /> Download PDF Report
+              </Button>
+            </div>
+          </div>
+        </div>
+      
+        {/* Existing Detailed Sections - Preserved */}
         {subjectPerformance.length > 0 && (
-          <Card className="bg-card border shadow-sm">
+          <Card className="bg-card border shadow-sm mb-6">
             <CardHeader>
               <CardTitle className="text-xl flex items-center"><BarChart3 className="mr-2 h-5 w-5 text-primary" />Subject-wise Performance</CardTitle>
             </CardHeader>
@@ -204,9 +254,9 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
           </Card>
         )}
 
-        <div>
-          <h3 className="text-xl font-semibold mb-3 text-center text-primary">Detailed Answers</h3>
-          <ScrollArea className="h-[450px] w-full rounded-md border p-4 bg-background shadow-inner">
+        <div id="detailed-answers-section">
+          <h3 className="text-2xl font-semibold mb-4 text-center text-primary">Detailed Answers</h3>
+          <ScrollArea className="h-[600px] w-full rounded-md border p-4 bg-background shadow-inner">
             <div className="space-y-4">
               {questions.map((q, index) => {
                 const mark = getMark(q);
@@ -215,7 +265,7 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
                 if (mark === -1) badgeVariant = "destructive"; 
                 
                 return (
-                <div key={q.id || `q-${index}`} className="p-4 border rounded-lg bg-card shadow-sm">
+                <div key={q.id || `q-${index}`} id={`detail-q-${q.id}`} className="p-4 border rounded-lg bg-card shadow-sm scroll-mt-20"> {/* Added scroll-mt-20 for better scroll targetting */}
                   <div className="flex justify-between items-start">
                     <p className="font-semibold text-base mb-2">Q{index + 1}: {q.questionText}</p>
                     <Badge variant={badgeVariant} className={`whitespace-nowrap ml-2 ${mark === 4 ? 'bg-green-500 hover:bg-green-600 text-white' : mark === -1 ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-yellow-400 hover:bg-yellow-500 text-black'}`}>
@@ -256,20 +306,9 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
             </div>
           </ScrollArea>
         </div>
-      </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-6 pb-6 sm:gap-4 border-t mt-6">
-        <Button onClick={handleRetakeTest} variant="secondary" size="lg" className="w-full sm:w-auto">
-          <RotateCcw className="mr-2 h-5 w-5" /> Retake This Test
-        </Button>
-        <Button onClick={() => generateTestPdf(result)} variant="outline" size="lg" className="w-full sm:w-auto">
-          <Download className="mr-2 h-5 w-5" /> Download PDF Report
-        </Button>
-         {onNavigateHome && (
-          <Button onClick={onNavigateHome} variant="default" size="lg" className="w-full sm:w-auto">
-            <HomeIcon className="mr-2 h-5 w-5" /> Back to Home
-          </Button>
-        )}
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 }
+
+    
