@@ -70,9 +70,10 @@ export default function PracticeTestSetupForm({ onSubmit, isLoading }: PracticeT
       form.setValue("chapter", ""); // Reset chapter when subject changes
     } else {
       setAvailableChapters([]);
+      form.setValue("chapter", ""); // Also reset chapter if subject is cleared
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSubject, form.setValue]); // form.setValue was missing, now added
+  }, [selectedSubject]); // Removed form.setValue from dependency array as it's stable
 
   function handleSubmit(values: PracticeTestSetupFormValues) {
     onSubmit(values);
@@ -116,8 +117,8 @@ export default function PracticeTestSetupForm({ onSubmit, isLoading }: PracticeT
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Chapter</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
+                <Select
+                  onValueChange={field.onChange}
                   value={field.value} // Ensure value is controlled
                   disabled={!selectedSubject || availableChapters.length === 0}
                 >
@@ -127,17 +128,18 @@ export default function PracticeTestSetupForm({ onSubmit, isLoading }: PracticeT
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {availableChapters.length > 0 ? (
-                      availableChapters.map((chapterName) => (
-                        <SelectItem key={chapterName} value={chapterName}>
-                          {chapterName}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="" disabled>
-                        Please select a subject first
+                    {availableChapters.map((chapterName) => (
+                      <SelectItem key={chapterName} value={chapterName}>
+                        {chapterName}
                       </SelectItem>
-                    )}
+                    ))}
+                    {/*
+                      Removed the else branch that caused the error:
+                      availableChapters.length === 0 ? (
+                        <SelectItem value="" disabled> Please select a subject first </SelectItem>
+                      )
+                      The disabled state of the Select and its placeholder handle this.
+                    */}
                   </SelectContent>
                 </Select>
                 <FormDescription>
@@ -190,7 +192,7 @@ export default function PracticeTestSetupForm({ onSubmit, isLoading }: PracticeT
             )}
           />
         </div>
-        
+
         <Button type="submit" disabled={isLoading} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
           {isLoading ? (
             <>
