@@ -47,6 +47,7 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateMockTestOutputSchema},
   prompt: `You are an expert test generator. Your task is to create a mock Multiple Choice Question (MCQ) test based on the class 11th and 12th syllabus.
 You MUST generate a total of {{numberOfQuestions}} MCQs. The output MUST be a single JSON object containing a key "questions" which is an array of these {{numberOfQuestions}} question objects.
+
 ABSOLUTE CRITICAL REQUIREMENT: For EVERY SINGLE ONE of the {{numberOfQuestions}} questions, you MUST provide all four (4) specified fields: 'subject', 'question', 'options', and 'answer'. The 'options' array for EVERY SINGLE question MUST contain EXACTLY four (4) string items. No exceptions.
 
 The generation of questions MUST follow this specific subject distribution and structure:
@@ -58,7 +59,7 @@ The generation of questions MUST follow this specific subject distribution and s
         *   \`"question"\`: A string containing the question text. (MANDATORY).
         *   \`"options"\`: An array of EXACTLY four (4) string options. NO MORE, NO LESS. (MANDATORY, and the array length MUST be 4).
         *   \`"answer"\`: A string that is identical to one of the 4 provided options. (MANDATORY).
-    *   OMITTING ANY OF THESE FIELDS OR PROVIDING FEWER/MORE THAN 4 OPTIONS FOR ANY QUESTION IN THIS BLOCK WILL INVALIDATE THE ENTIRE TEST. Be meticulous.
+    *   Crucially, for EVERY one of these 45 Physics questions, all four fields ('subject' set to "Physics", 'question', 'options' with exactly 4 string items, 'answer') MUST be present. NO EXCEPTIONS. OMITTING ANY OF THESE FIELDS OR PROVIDING FEWER/MORE THAN 4 OPTIONS FOR ANY QUESTION IN THIS BLOCK WILL INVALIDATE THE ENTIRE TEST. Be meticulous.
 
 2.  **Chemistry Questions (Next 45 MCQs, from question 46 to 90):**
     *   Generate EXACTLY 45 MCQs for Chemistry.
@@ -67,7 +68,7 @@ The generation of questions MUST follow this specific subject distribution and s
         *   \`"question"\`: A string containing the question text. (MANDATORY).
         *   \`"options"\`: An array of EXACTLY four (4) string options. NO MORE, NO LESS. (MANDATORY, and the array length MUST be 4).
         *   \`"answer"\`: A string that is identical to one of the 4 provided options. (MANDATORY).
-    *   OMITTING ANY OF THESE FIELDS OR PROVIDING FEWER/MORE THAN 4 OPTIONS FOR ANY QUESTION IN THIS BLOCK WILL INVALIDATE THE ENTIRE TEST. Be meticulous.
+    *   Crucially, for EVERY one of these 45 Chemistry questions, all four fields ('subject' set to "Chemistry", 'question', 'options' with exactly 4 string items, 'answer') MUST be present. NO EXCEPTIONS. OMITTING ANY OF THESE FIELDS OR PROVIDING FEWER/MORE THAN 4 OPTIONS FOR ANY QUESTION IN THIS BLOCK WILL INVALIDATE THE ENTIRE TEST. Be meticulous.
 
 3.  **Biology Questions (Final 90 MCQs, from question 91 to 180):**
     *   Generate EXACTLY 90 MCQs for Biology (covering both Botany and Zoology).
@@ -76,10 +77,10 @@ The generation of questions MUST follow this specific subject distribution and s
         *   \`"question"\`: A string containing the question text. (MANDATORY).
         *   \`"options"\`: An array of EXACTLY four (4) string options. NO MORE, NO LESS. (MANDATORY, and the array length MUST be 4).
         *   \`"answer"\`: A string that is identical to one of the 4 provided options. (MANDATORY).
-    *   OMITTING ANY OF THESE FIELDS OR PROVIDING FEWER/MORE THAN 4 OPTIONS FOR ANY QUESTION IN THIS BLOCK WILL INVALIDATE THE ENTIRE TEST. Be meticulous.
+    *   Crucially, for EVERY one of these 90 Biology questions, all four fields ('subject' set to "Biology", 'question', 'options' with exactly 4 string items, 'answer') MUST be present. NO EXCEPTIONS. OMITTING ANY OF THESE FIELDS OR PROVIDING FEWER/MORE THAN 4 OPTIONS FOR ANY QUESTION IN THIS BLOCK WILL INVALIDATE THE ENTIRE TEST. Be meticulous. DOUBLE CHECK EACH QUESTION.
 
 **Overall Requirements & Final Check:**
-*   ULTRA-CRITICAL: Before outputting, please review your generated list of {{numberOfQuestions}} questions. Every single one of these question objects MUST contain all four fields: 'subject' (correctly set to "Physics", "Chemistry", or "Biology" as per its section), 'question', 'options' (an array of PRECISELY 4 strings), and 'answer'. There are no exceptions. Double-check each question for all four fields and the exact option count.
+*   ULTRA-CRITICAL: Before outputting, please review your generated list of {{numberOfQuestions}} questions. Every single one of these question objects MUST contain all four fields: 'subject' (correctly set to "Physics", "Chemistry", or "Biology" as per its section), 'question', 'options' (an array of PRECISELY 4 strings), and 'answer'. There are no exceptions. Double-check each question for all four fields and the exact option count. Failure to meet these requirements for even a single question means the entire output is incorrect.
 *   The total number of questions in the "questions" array MUST be exactly {{numberOfQuestions}}. This means 45 Physics, then 45 Chemistry, then 90 Biology, in that order.
 *   The questions should cover a diverse range of topics from the specified syllabus for each subject and be of a standard reflecting typical exam difficulty.
 *   The output MUST be a JSON object that strictly conforms to the provided output schema. Pay extremely close attention to the "required" fields (subject, question, options, answer) and array lengths (options must have 4 items) detailed above for EVERY question.
