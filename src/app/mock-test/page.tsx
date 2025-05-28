@@ -15,9 +15,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { PlayCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-const MOCK_TEST_DURATION_MINUTES = 180; // 3 hours
-const MOCK_TEST_NUM_QUESTIONS = 180;
-const MOCK_TEST_TITLE = "Mock Test";
+const MOCK_TEST_DURATION_MINUTES = 50; // Adjusted for 50 questions
+const MOCK_TEST_NUM_QUESTIONS = 50; // Changed from 180 to 50
+const MOCK_TEST_TITLE = "Mock Test (50 Questions)";
 
 export default function MockTestPage() {
   const [testState, setTestState] = useState<'idle' | 'loading' | 'inProgress' | 'completed'>('idle');
@@ -164,7 +164,7 @@ export default function MockTestPage() {
         <CardHeader>
           <CardTitle className="text-3xl font-bold">Mock Test Challenge</CardTitle>
           <CardDescription className="text-lg">
-            This is a {MOCK_TEST_NUM_QUESTIONS}-MCQ mock test based on Class 11th &amp; 12th syllabus with a {MOCK_TEST_DURATION_MINUTES / 60}-hour time limit.
+            This is a {MOCK_TEST_NUM_QUESTIONS}-MCQ mock test based on Class 11th &amp; 12th syllabus with a {MOCK_TEST_DURATION_MINUTES}-minute time limit.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -181,3 +181,4 @@ export default function MockTestPage() {
     </div>
   );
 }
+
