@@ -9,7 +9,7 @@ body {
 
 @layer base {
   :root {
-    --background: 0 0% 94.1%; /* Light gray #F0F0F0 */
+    --background: 0 0% 100%; /* Changed from light gray to white */
     --foreground: 0 0% 3.9%; /* Default dark text */
 
     --card: 0 0% 100%;
@@ -24,7 +24,7 @@ body {
     --secondary: 271 30% 85%; /* Lighter indigo for secondary elements */
     --secondary-foreground: 271 100% 25.3%; /* Dark text on secondary */
 
-    --muted: 0 0% 90%; /* Slightly darker than background for muted elements */
+    --muted: 0 0% 96.1%; /* Slightly darker than background for muted elements */
     --muted-foreground: 0 0% 45.1%;
 
     --accent: 180 100% 25.1%; /* Teal #008080 */
@@ -33,7 +33,7 @@ body {
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 85%; /* Border color complementary to light gray */
+    --border: 0 0% 89.8%; /* Border color complementary to white */
     --input: 0 0% 98%; /* Input background, slightly off-white */
     --ring: 271 100% 25.3%; /* Ring color same as primary */
     
@@ -53,6 +53,11 @@ body {
     --sidebar-accent-foreground: var(--accent-foreground);
     --sidebar-border: var(--border);
     --sidebar-ring: var(--ring);
+
+    /* New Brand Colors from Testbook Image */
+    --brand-green: 145 63% 42%; /* approx #3AA663 */
+    --brand-green-light: 145 70% 94%; /* approx #E6F7ED */
+    --brand-blue: 205 80% 55%; /* approx #4CA1E8 */
   }
 
   .dark {
@@ -99,6 +104,11 @@ body {
     --sidebar-accent-foreground: var(--accent-foreground);
     --sidebar-border: var(--border);
     --sidebar-ring: var(--ring);
+
+    /* New Brand Colors for Dark Mode (adjust as needed) */
+    --brand-green: 145 55% 50%; 
+    --brand-green-light: 145 30% 20%; 
+    --brand-blue: 205 70% 60%;
   }
 }
 
