@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 
 interface TestResultsDisplayProps {
   result: TestResultItem;
+  onNavigateHome?: () => void; // Optional: if you want a dedicated home button action
 }
 
 const getMark = (question: AppQuestion): number => {
@@ -45,7 +46,7 @@ interface SubjectPerformance {
   percentage: number;
 }
 
-export default function TestResultsDisplay({ result }: TestResultsDisplayProps) {
+export default function TestResultsDisplay({ result, onNavigateHome }: TestResultsDisplayProps) {
   const { score, questions, testType, originalQuizId, testTitle, timeTakenSeconds, config } = result;
   const router = useRouter();
 
@@ -55,7 +56,8 @@ export default function TestResultsDisplay({ result }: TestResultsDisplayProps) 
       router.push(`${path}?retakeQuizId=${originalQuizId}`);
     } else {
       console.error("OriginalQuizId not found, cannot retake.");
-      router.push('/'); // Fallback to home
+      // Fallback to home or relevant test setup page
+      router.push(testType === 'mock' ? '/mock-test' : '/practice-test');
     }
   };
   
@@ -217,6 +219,11 @@ export default function TestResultsDisplay({ result }: TestResultsDisplayProps) 
                 <Download className="mr-2 h-5 w-5" /> Download PDF Report
               </Button>
             </div>
+             {onNavigateHome && (
+                <Button onClick={onNavigateHome} variant="link" className="mt-4 text-primary">
+                    <HomeIcon className="mr-2 h-4 w-4" /> Back to Home
+                </Button>
+            )}
           </div>
         </div>
       
