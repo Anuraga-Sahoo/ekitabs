@@ -2,25 +2,24 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import type { AppQuestion } from '@/types';
+import type { AppQuestion, PracticeTestConfig } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'; // Keep Card for question box
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTestTimer } from '@/hooks/useTestTimer';
-import { ArrowLeft, ArrowRight, CheckCircle, RotateCcw, X, Flag } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, X, Flag } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import TestInProgressHeader from './TestInProgressHeader';
 import TestInProgressSidebar from './TestInProgressSidebar';
-import { cn } from '@/lib/utils';
-
 
 interface TestInProgressProps {
   questions: AppQuestion[];
   durationMinutes: number;
-  onTestSubmit: (answers: Record<string, string>) => void;
+  onTestSubmit: (answers: Record<string, string>, originalQuizId: string) => void;
   testType: 'mock' | 'practice';
-  practiceTestConfig?: { subject: string; chapter: string; }; // For practice test header
+  originalQuizId: string; // ID of the original set of questions
+  practiceTestConfig?: { subject: string; chapter: string; };
 }
 
 export default function TestInProgress({ 
@@ -28,6 +27,7 @@ export default function TestInProgress({
   durationMinutes, 
   onTestSubmit, 
   testType,
+  originalQuizId,
   practiceTestConfig
 }: TestInProgressProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -36,15 +36,27 @@ export default function TestInProgress({
   const [visitedQuestions, setVisitedQuestions] = useState<Set<string>>(new Set());
   
   const handleTimerEnd = useCallback(() => {
-    onTestSubmit(userAnswers);
-  }, [onTestSubmit, userAnswers]);
+    // Pass originalQuizId along with answers
+    onTestSubmit(userAnswers, originalQuizId);
+  }, [onTestSubmit, userAnswers, originalQuizId]);
 
   const { minutes, seconds, isActive, startTimer, stopTimer, totalSecondsLeft } = useTestTimer(durationMinutes, handleTimerEnd);
 
   useEffect(() => {
     startTimer();
-    return () => stopTimer();
-  }, [startTimer, stopTimer]);
+    // Clear answers and marks from previous attempts if questions are reloaded (e.g. for a retake)
+    setUserAnswers({});
+    setMarkedForReview(new Set());
+    setVisitedQuestions(new Set());
+    setCurrentQuestionIndex(0);
+    if (questions.length > 0 && questions[0]) {
+      setVisitedQuestions(prev => new Set(prev).add(questions[0].id));
+    }
+  }, [questions, startTimer]); // Rerun if questions array instance changes
+
+  useEffect(() => {
+    return () => stopTimer(); // Cleanup timer on unmount
+  }, [stopTimer]);
 
   useEffect(() => {
     if (questions.length > 0 && questions[currentQuestionIndex]) {
@@ -76,32 +88,27 @@ export default function TestInProgress({
 
   const handleSubmitTest = () => {
     stopTimer();
-    onTestSubmit(userAnswers);
+    onTestSubmit(userAnswers, originalQuizId);
   };
 
   const handleMarkForReviewAndNext = () => {
+    if(!currentQuestion) return;
     setMarkedForReview(prev => {
       const newSet = new Set(prev);
-      // Toggle mark for review for current question. Image implies "Mark for Review & Next" always marks.
-      // If you want toggle behavior:
-      // if (newSet.has(currentQuestion.id)) {
-      //   newSet.delete(currentQuestion.id);
-      // } else {
-      //   newSet.add(currentQuestion.id);
-      // }
-      // For now, it always marks and moves next:
-      newSet.add(currentQuestion.id);
+      if (newSet.has(currentQuestion.id)) { // Toggle behavior
+        newSet.delete(currentQuestion.id);
+      } else {
+        newSet.add(currentQuestion.id);
+      }
       return newSet;
     });
     if (currentQuestionIndex < questions.length - 1) {
       goToNextQuestion();
-    } else {
-      // If it's the last question, and they mark for review & next, perhaps don't auto-submit.
-      // Or maybe they should be prompted. For now, it will just stay on the last question.
     }
   };
 
   const handleClearResponse = () => {
+    if(!currentQuestion) return;
     setUserAnswers(prev => {
       const newAnswers = { ...prev };
       delete newAnswers[currentQuestion.id];
@@ -110,12 +117,11 @@ export default function TestInProgress({
   };
   
   if (!currentQuestion) {
-    // This case should ideally be handled by the parent page if questions array is empty.
-    return <p className="text-center py-10">Loading questions or no questions available...</p>;
+    return <div className="flex items-center justify-center h-full"><LoadingSpinner text="Loading questions..." /></div>;
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-var(--header-height,80px))]"> {/* Adjust 80px based on actual root header height */}
+    <div className="flex flex-col h-[calc(100vh-var(--header-height,80px))]">
       <TestInProgressHeader 
         testType={testType}
         subject={practiceTestConfig?.subject}
@@ -129,7 +135,6 @@ export default function TestInProgress({
           <div className="space-y-4">
             <div className="flex justify-between items-center mb-2">
                 <h2 className="text-lg font-semibold">Question No. {currentQuestionIndex + 1}</h2>
-                {/* Placeholder for Marks, Time spent on Q, Report - Omitted for now */}
             </div>
             <Card className="shadow-md">
               <CardHeader>
@@ -143,7 +148,7 @@ export default function TestInProgress({
                   className="space-y-2 mt-4"
                 >
                   {currentQuestion.options.map((option, index) => (
-                    <div key={index} className="flex items-center space-x-3 p-3 border rounded-md hover:bg-muted/50 transition-colors">
+                    <div key={`${currentQuestion.id}-opt-${index}`} className="flex items-center space-x-3 p-3 border rounded-md hover:bg-muted/50 transition-colors">
                       <RadioGroupItem value={option} id={`${currentQuestion.id}-option-${index}`} />
                       <Label htmlFor={`${currentQuestion.id}-option-${index}`} className="flex-1 cursor-pointer text-sm md:text-base">
                         {option}
@@ -159,9 +164,9 @@ export default function TestInProgress({
                 {totalSecondsLeft} seconds remaining!
               </p>
             )}
-            {totalSecondsLeft === 0 && !isActive && (
+             {totalSecondsLeft === 0 && ( // Show message when time is up, regardless of isActive, as timerEnd callback handles submission.
               <p className="text-center text-destructive font-bold text-lg p-4 bg-destructive/10 rounded-md">
-                Time's up! Your test has been submitted.
+                Time's up!
               </p>
             )}
           </div>
@@ -179,8 +184,8 @@ export default function TestInProgress({
       </div>
       <div className="flex items-center justify-between p-3 border-t bg-card sticky bottom-0 z-10">
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleMarkForReviewAndNext}>
-              <Flag className="mr-2 h-4 w-4" /> Mark for Review & Next
+            <Button variant="outline" onClick={handleMarkForReviewAndNext} title={markedForReview.has(currentQuestion.id) ? "Unmark for Review & Next" : "Mark for Review & Next"}>
+              <Flag className="mr-2 h-4 w-4" /> {markedForReview.has(currentQuestion.id) ? "Unmark & Next" : "Mark & Next"}
             </Button>
             <Button variant="outline" onClick={handleClearResponse}>
               <X className="mr-2 h-4 w-4" /> Clear Response
@@ -205,4 +210,3 @@ export default function TestInProgress({
     </div>
   );
 }
-

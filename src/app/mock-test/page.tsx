@@ -1,33 +1,36 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import TestInProgress from '@/components/TestInProgress';
 import TestResultsDisplay from '@/components/TestResultsDisplay';
 import { generateMockTest, type GenerateMockTestOutput } from '@/ai/flows/generate-mock-test';
-import type { AppQuestion, TestResultItem, TestScore } from '@/types';
+import type { AppQuestion, TestResultItem, TestScore, StoredQuiz } from '@/types';
 import { saveTestResult } from '@/lib/localStorageHelper';
+import { saveGeneratedQuiz, getGeneratedQuiz, generateQuizId } from '@/lib/quizStorage';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlayCircle } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const MOCK_TEST_DURATION_MINUTES = 180; // 3 hours
-const MOCK_TEST_NUM_QUESTIONS = 180; 
+const MOCK_TEST_NUM_QUESTIONS = 180;
+const MOCK_TEST_TITLE = "Mock Test";
 
 export default function MockTestPage() {
   const [testState, setTestState] = useState<'idle' | 'loading' | 'inProgress' | 'completed'>('idle');
   const [questions, setQuestions] = useState<AppQuestion[]>([]);
+  const [currentOriginalQuizId, setCurrentOriginalQuizId] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<TestResultItem | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const transformAiQuestions = (aiOutput: GenerateMockTestOutput): AppQuestion[] => {
     return aiOutput.questions.map((q, index) => ({
-      id: `mock-${Date.now()}-${index + 1}`, // Ensure unique IDs
+      id: `mock-q-${Date.now()}-${index + 1}`, // Ensure unique IDs for question instances
       subject: q.subject,
       questionText: q.question,
       options: q.options,
@@ -35,19 +38,25 @@ export default function MockTestPage() {
     }));
   };
 
-  const startTest = async () => {
+  const startNewTest = async () => {
     setTestState('loading');
     try {
       const aiOutput = await generateMockTest({ numberOfQuestions: MOCK_TEST_NUM_QUESTIONS });
       if (aiOutput && aiOutput.questions.length > 0) {
-        // Ensure all questions have IDs
         const transformedQuestions = transformAiQuestions(aiOutput);
-        const allHaveIds = transformedQuestions.every(q => q.id);
-        if (!allHaveIds) {
-            console.error("Some questions are missing IDs after transformation", transformedQuestions.filter(q=>!q.id));
-            // Fallback or error handling if needed
-        }
+        const newOriginalQuizId = generateQuizId('mock');
+        
+        const quizToStore: StoredQuiz = {
+          id: newOriginalQuizId,
+          testType: 'mock',
+          questions: transformedQuestions,
+          createdAt: new Date().toISOString(),
+          title: MOCK_TEST_TITLE,
+        };
+        saveGeneratedQuiz(quizToStore); // Simulate saving to DB
+
         setQuestions(transformedQuestions);
+        setCurrentOriginalQuizId(newOriginalQuizId);
         setTestState('inProgress');
       } else {
         toast({ title: "Error", description: "Failed to generate mock test questions. Please try again.", variant: "destructive" });
@@ -60,7 +69,36 @@ export default function MockTestPage() {
     }
   };
 
+  const startRetakeTest = useCallback((quizId: string) => {
+    setTestState('loading');
+    const storedQuiz = getGeneratedQuiz(quizId);
+    if (storedQuiz && storedQuiz.testType === 'mock') {
+      // Reset userAnswer for all questions for a fresh retake
+      const questionsForRetake = storedQuiz.questions.map(q => ({ ...q, userAnswer: undefined }));
+      setQuestions(questionsForRetake);
+      setCurrentOriginalQuizId(storedQuiz.id);
+      setTestState('inProgress');
+    } else {
+      toast({ title: "Error", description: "Could not find the test to retake or it's not a mock test.", variant: "destructive" });
+      router.replace('/mock-test'); // Clear query params
+      setTestState('idle');
+    }
+  }, [router, toast]);
+
+  useEffect(() => {
+    const retakeQuizId = searchParams.get('retakeQuizId');
+    if (retakeQuizId && testState === 'idle') { // Only process if idle to avoid re-triggering
+      startRetakeTest(retakeQuizId);
+    }
+  }, [searchParams, startRetakeTest, testState]);
+
+
   const handleSubmitTest = (userAnswers: Record<string, string>) => {
+    if (!currentOriginalQuizId) {
+      toast({ title: "Error", description: "Cannot submit test without an original quiz ID.", variant: "destructive" });
+      return;
+    }
+
     const answeredQuestions = questions.map(q => ({
       ...q,
       userAnswer: userAnswers[q.id] || '',
@@ -85,8 +123,10 @@ export default function MockTestPage() {
 
     const score: TestScore = { correct, incorrect, unanswered, totalScore, maxScore };
     const resultData: TestResultItem = {
-      testId: `mock-${Date.now()}`,
+      testAttemptId: `mock-attempt-${Date.now()}`,
+      originalQuizId: currentOriginalQuizId,
       testType: 'mock',
+      testTitle: MOCK_TEST_TITLE,
       dateCompleted: new Date().toISOString(),
       score,
       questions: answeredQuestions,
@@ -99,16 +139,17 @@ export default function MockTestPage() {
   };
 
   if (testState === 'loading') {
-     return <div className="flex items-center justify-center h-screen"><LoadingSpinner text="Generating your mock test, please wait..." /></div>;
+     return <div className="flex items-center justify-center h-screen"><LoadingSpinner text="Preparing your mock test, please wait..." /></div>;
   }
 
-  if (testState === 'inProgress') {
+  if (testState === 'inProgress' && currentOriginalQuizId) {
     return (
       <TestInProgress
         questions={questions}
         durationMinutes={MOCK_TEST_DURATION_MINUTES}
         onTestSubmit={handleSubmitTest}
         testType="mock"
+        originalQuizId={currentOriginalQuizId}
       />
     );
   }
@@ -123,7 +164,7 @@ export default function MockTestPage() {
         <CardHeader>
           <CardTitle className="text-3xl font-bold">Mock Test Challenge</CardTitle>
           <CardDescription className="text-lg">
-            Ready to test your knowledge? This is a {MOCK_TEST_NUM_QUESTIONS}-MCQ mock test based on Class 11th &amp; 12th syllabus with a {MOCK_TEST_DURATION_MINUTES / 60}-hour time limit.
+            This is a {MOCK_TEST_NUM_QUESTIONS}-MCQ mock test based on Class 11th &amp; 12th syllabus with a {MOCK_TEST_DURATION_MINUTES / 60}-hour time limit.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -132,7 +173,7 @@ export default function MockTestPage() {
           </p>
         </CardContent>
         <CardFooter>
-          <Button onClick={startTest} size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+          <Button onClick={startNewTest} size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
             <PlayCircle className="mr-2 h-5 w-5" /> Start Mock Test
           </Button>
         </CardFooter>
@@ -140,4 +181,3 @@ export default function MockTestPage() {
     </div>
   );
 }
-

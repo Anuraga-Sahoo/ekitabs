@@ -4,33 +4,45 @@
 import type { TestResultItem, AppQuestion } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, XCircle, MinusCircle, Download, RotateCcw } from 'lucide-react';
+import { CheckCircle, XCircle, MinusCircle, Download, RotateCcw, HomeIcon } from 'lucide-react';
 import { generateTestPdf } from '@/lib/pdfGenerator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 interface TestResultsDisplayProps {
   result: TestResultItem;
-  onRetake?: () => void; // For practice tests
   onNavigateHome?: () => void;
 }
 
 const getMark = (question: AppQuestion): number => {
     if (!question.userAnswer || question.userAnswer.trim() === "") return 0; // Unanswered
-    if (question.userAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase()) return 4; // Correct
+    if (question.userAnswer.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()) return 4; // Correct
     return -1; // Incorrect
 };
 
-export default function TestResultsDisplay({ result, onRetake, onNavigateHome }: TestResultsDisplayProps) {
-  const { score, questions, testType } = result;
+export default function TestResultsDisplay({ result, onNavigateHome }: TestResultsDisplayProps) {
+  const { score, questions, testType, originalQuizId, config } = result;
+  const router = useRouter();
+
+  const handleRetakeTest = () => {
+    if (originalQuizId) {
+      const path = testType === 'mock' ? '/mock-test' : '/practice-test';
+      router.push(`${path}?retakeQuizId=${originalQuizId}`);
+    } else {
+      // Fallback or error, though originalQuizId should always be present
+      console.error("OriginalQuizId not found, cannot retake.");
+      if (onNavigateHome) onNavigateHome(); // Or navigate to a safe page
+    }
+  };
 
   return (
-    <Card className="w-full max-w-3xl mx-auto shadow-2xl">
+    <Card className="w-full max-w-3xl mx-auto shadow-2xl my-8">
       <CardHeader className="text-center">
         <CardTitle className="text-3xl font-bold text-primary">Test Results</CardTitle>
         <CardDescription className="text-lg">
-          Here's how you performed in your {testType} test.
+          Here's how you performed in your {result.testTitle || testType} test.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -64,11 +76,11 @@ export default function TestResultsDisplay({ result, onRetake, onNavigateHome }:
               {questions.map((q, index) => {
                 const mark = getMark(q);
                 let badgeVariant: "default" | "destructive" | "secondary" = "secondary";
-                if (mark === 4) badgeVariant = "default";
-                if (mark === -1) badgeVariant = "destructive";
+                if (mark === 4) badgeVariant = "default"; // Correct
+                if (mark === -1) badgeVariant = "destructive"; // Incorrect
                 
                 return (
-                <div key={q.id} className="p-3 border rounded-md bg-card">
+                <div key={q.id || `q-${index}`} className="p-3 border rounded-md bg-card">
                   <p className="font-semibold mb-2">Q{index + 1}: {q.questionText}</p>
                   <div className="ml-2 my-2 space-y-1 text-sm">
                     {q.options.map((option, optIndex) => {
@@ -77,7 +89,7 @@ export default function TestResultsDisplay({ result, onRetake, onNavigateHome }:
                       
                       return (
                         <div 
-                          key={optIndex} 
+                          key={`${q.id || index}-opt-${optIndex}`} 
                           className={cn(
                             "p-1.5 rounded-md flex items-center justify-between",
                             isCorrectOption && "bg-green-100 dark:bg-green-800/30 border border-green-500",
@@ -103,18 +115,16 @@ export default function TestResultsDisplay({ result, onRetake, onNavigateHome }:
           </ScrollArea>
         </div>
       </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row justify-center gap-4 pt-6">
+      <CardFooter className="flex flex-col sm:flex-row justify-center gap-3 pt-6 sm:gap-4">
+        <Button onClick={handleRetakeTest} variant="secondary">
+          <RotateCcw className="mr-2 h-4 w-4" /> Retake This Test
+        </Button>
         <Button onClick={() => generateTestPdf(result)} variant="outline">
           <Download className="mr-2 h-4 w-4" /> Download PDF
         </Button>
-        {onRetake && testType === 'practice' && (
-          <Button onClick={onRetake} variant="secondary">
-            <RotateCcw className="mr-2 h-4 w-4" /> Retake Practice
-          </Button>
-        )}
          {onNavigateHome && (
           <Button onClick={onNavigateHome} variant="default">
-            Back to Home
+            <HomeIcon className="mr-2 h-4 w-4" /> Back to Home
           </Button>
         )}
       </CardFooter>

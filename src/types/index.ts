@@ -9,7 +9,7 @@ export interface AppQuestion {
 }
 
 export interface Test {
-  id: string;
+  id: string; // This might refer to an originalQuizId if it's a predefined test
   type: 'mock' | 'practice';
   questions: AppQuestion[];
   durationMinutes: number; // Duration in minutes
@@ -32,11 +32,22 @@ export interface TestScore {
 }
 
 export interface TestResultItem {
-  testId: string;
+  testAttemptId: string; // Unique ID for this specific attempt
+  originalQuizId: string; // ID of the original set of questions used for this attempt
   testType: 'mock' | 'practice';
+  testTitle: string; // e.g., "Mock Test" or "Practice: Physics - Kinematics"
   dateCompleted: string;
   score: TestScore;
-  questions: AppQuestion[];
-  config?: PracticeTestConfig;
+  questions: AppQuestion[]; // Questions with user's answers for this attempt
+  config?: PracticeTestConfig; // Stored for context, especially if practice test
 }
 
+// New type for storing the quiz questions themselves
+export interface StoredQuiz {
+  id: string; // This is the originalQuizId
+  testType: 'mock' | 'practice';
+  questions: AppQuestion[]; // The pristine set of questions
+  config?: PracticeTestConfig; // For practice tests
+  createdAt: string;
+  title: string;
+}
