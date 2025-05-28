@@ -34,8 +34,8 @@ const features = [
 
 export default function Home() {
   return (
-    <div className="flex flex-col items-center space-y-16 md:space-y-24">
-      <section className="w-full py-16 md:py-24 lg:py-32 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-lg shadow-xl">
+    <div className="flex flex-col items-center space-y-12 md:space-y-20">
+      <section className="w-full py-12 md:py-20 lg:py-28 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-lg shadow-xl">
         <div className="container px-4 md:px-6 text-center">
           <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl drop-shadow-md">
             Welcome to TestPrep AI
@@ -44,10 +44,19 @@ export default function Home() {
             Your ultimate platform for AI-powered mock tests and personalized practice. Prepare smarter, not harder.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6">
-            <Button size="lg" asChild className="bg-background text-foreground hover:bg-background/90 w-full sm:w-auto">
+            <Button 
+              size="lg" 
+              asChild 
+              className="bg-background text-foreground hover:bg-background/90 w-full sm:w-auto transition-transform duration-200 ease-in-out hover:-translate-y-0.5"
+            >
               <Link href="/mock-test">Start Mock Test <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
-            <Button size="lg" variant="outline" asChild className="border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10 w-full sm:w-auto">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              asChild 
+              className="border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10 w-full sm:w-auto transition-transform duration-200 ease-in-out hover:-translate-y-0.5"
+            >
               <Link href="/practice-test">Create Practice Test <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
           </div>
@@ -65,7 +74,10 @@ export default function Home() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature) => (
-            <Card key={feature.title} className="hover:shadow-2xl transition-shadow duration-300 flex flex-col bg-card">
+            <Card 
+              key={feature.title} 
+              className="transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1 flex flex-col bg-card"
+            >
               <CardHeader className="items-center text-center pt-6 pb-4">
                 <feature.icon className="h-12 w-12 text-primary mb-3" />
                 <CardTitle className="text-2xl">{feature.title}</CardTitle>
