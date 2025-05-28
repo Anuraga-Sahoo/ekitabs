@@ -18,7 +18,7 @@ interface TestResultsDisplayProps {
 
 const getMark = (question: AppQuestion): number => {
     if (!question.userAnswer || question.userAnswer.trim() === "") return 0; // Unanswered
-    if (question.userAnswer.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()) return 4; // Correct
+    if (question.userAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase()) return 4; // Correct
     return -1; // Incorrect
 };
 
