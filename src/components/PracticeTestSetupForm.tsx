@@ -23,7 +23,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { PracticeTestConfig } from "@/types";
-import { Atom, BookCopy, FlaskConical, Brain } from "lucide-react";
+import { Atom, BookCopy, FlaskConical, Brain, Loader2 } from "lucide-react";
+import { chapterData } from "@/lib/chapters";
+import React, { useEffect, useState } from "react";
 
 const subjects = [
   { value: "Physics", label: "Physics", icon: Atom },
@@ -35,7 +37,7 @@ const complexityLevels: PracticeTestConfig['complexityLevel'][] = ["easy", "medi
 
 const formSchema = z.object({
   subject: z.string().min(1, "Please select a subject."),
-  chapter: z.string().min(1, "Chapter name is required.").max(100, "Chapter name is too long."),
+  chapter: z.string().min(1, "Please select a chapter."),
   numberOfQuestions: z.coerce.number().int().min(1, "Minimum 1 question.").max(50, "Maximum 50 questions."),
   complexityLevel: z.enum(complexityLevels, { required_error: "Please select a complexity level." }),
 });
@@ -48,6 +50,8 @@ interface PracticeTestSetupFormProps {
 }
 
 export default function PracticeTestSetupForm({ onSubmit, isLoading }: PracticeTestSetupFormProps) {
+  const [availableChapters, setAvailableChapters] = useState<string[]>([]);
+
   const form = useForm<PracticeTestSetupFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -57,6 +61,18 @@ export default function PracticeTestSetupForm({ onSubmit, isLoading }: PracticeT
       complexityLevel: "medium",
     },
   });
+
+  const selectedSubject = form.watch("subject");
+
+  useEffect(() => {
+    if (selectedSubject) {
+      setAvailableChapters(chapterData[selectedSubject] || []);
+      form.setValue("chapter", ""); // Reset chapter when subject changes
+    } else {
+      setAvailableChapters([]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSubject, form.setValue]); // form.setValue was missing, now added
 
   function handleSubmit(values: PracticeTestSetupFormValues) {
     onSubmit(values);
@@ -100,11 +116,32 @@ export default function PracticeTestSetupForm({ onSubmit, isLoading }: PracticeT
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Chapter</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., Thermodynamics" {...field} />
-                </FormControl>
+                <Select 
+                  onValueChange={field.onChange} 
+                  value={field.value} // Ensure value is controlled
+                  disabled={!selectedSubject || availableChapters.length === 0}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a chapter" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {availableChapters.length > 0 ? (
+                      availableChapters.map((chapterName) => (
+                        <SelectItem key={chapterName} value={chapterName}>
+                          {chapterName}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="" disabled>
+                        Please select a subject first
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
                 <FormDescription>
-                  Enter the chapter you want to practice.
+                  Select the chapter you want to practice.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -168,7 +205,3 @@ export default function PracticeTestSetupForm({ onSubmit, isLoading }: PracticeT
     </Form>
   );
 }
-
-// Add Loader2 to lucide-react imports if not already done (it's standard).
-// For now, assuming Loader2 is part of lucide-react (it is).
-import { Loader2 } from "lucide-react";
