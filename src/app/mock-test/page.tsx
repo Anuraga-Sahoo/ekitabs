@@ -15,8 +15,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { PlayCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-const MOCK_TEST_DURATION_MINUTES = 50; // Adjusted for 50 questions
-const MOCK_TEST_NUM_QUESTIONS = 50; // Changed from 180 to 50
+const MOCK_TEST_DURATION_MINUTES = 50; 
+const MOCK_TEST_NUM_QUESTIONS = 50; 
 const MOCK_TEST_TITLE = "Mock Test (50 Questions)";
 
 export default function MockTestPage() {
@@ -30,7 +30,7 @@ export default function MockTestPage() {
 
   const transformAiQuestions = (aiOutput: GenerateMockTestOutput): AppQuestion[] => {
     return aiOutput.questions.map((q, index) => ({
-      id: `mock-q-${Date.now()}-${index + 1}`, // Ensure unique IDs for question instances
+      id: `mock-q-${Date.now()}-${index + 1}`, 
       subject: q.subject,
       questionText: q.question,
       options: q.options,
@@ -53,7 +53,7 @@ export default function MockTestPage() {
           createdAt: new Date().toISOString(),
           title: MOCK_TEST_TITLE,
         };
-        saveGeneratedQuiz(quizToStore); // Simulate saving to DB
+        saveGeneratedQuiz(quizToStore); 
 
         setQuestions(transformedQuestions);
         setCurrentOriginalQuizId(newOriginalQuizId);
@@ -73,27 +73,26 @@ export default function MockTestPage() {
     setTestState('loading');
     const storedQuiz = getGeneratedQuiz(quizId);
     if (storedQuiz && storedQuiz.testType === 'mock') {
-      // Reset userAnswer for all questions for a fresh retake
       const questionsForRetake = storedQuiz.questions.map(q => ({ ...q, userAnswer: undefined }));
       setQuestions(questionsForRetake);
       setCurrentOriginalQuizId(storedQuiz.id);
       setTestState('inProgress');
     } else {
       toast({ title: "Error", description: "Could not find the test to retake or it's not a mock test.", variant: "destructive" });
-      router.replace('/mock-test'); // Clear query params
+      router.replace('/mock-test'); 
       setTestState('idle');
     }
   }, [router, toast]);
 
   useEffect(() => {
     const retakeQuizId = searchParams.get('retakeQuizId');
-    if (retakeQuizId && testState === 'idle') { // Only process if idle to avoid re-triggering
+    if (retakeQuizId && testState === 'idle') { 
       startRetakeTest(retakeQuizId);
     }
   }, [searchParams, startRetakeTest, testState]);
 
 
-  const handleSubmitTest = (userAnswers: Record<string, string>) => {
+  const handleSubmitTest = (userAnswers: Record<string, string>, originalQuizId: string, timeTakenSeconds: number) => {
     if (!currentOriginalQuizId) {
       toast({ title: "Error", description: "Cannot submit test without an original quiz ID.", variant: "destructive" });
       return;
@@ -124,12 +123,13 @@ export default function MockTestPage() {
     const score: TestScore = { correct, incorrect, unanswered, totalScore, maxScore };
     const resultData: TestResultItem = {
       testAttemptId: `mock-attempt-${Date.now()}`,
-      originalQuizId: currentOriginalQuizId,
+      originalQuizId: currentOriginalQuizId, // Use the state variable currentOriginalQuizId
       testType: 'mock',
       testTitle: MOCK_TEST_TITLE,
       dateCompleted: new Date().toISOString(),
       score,
       questions: answeredQuestions,
+      timeTakenSeconds,
     };
     
     setTestResult(resultData);
@@ -181,4 +181,3 @@ export default function MockTestPage() {
     </div>
   );
 }
-

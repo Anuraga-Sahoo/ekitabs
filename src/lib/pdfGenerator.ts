@@ -1,12 +1,23 @@
 
 import jsPDF from 'jspdf';
-import 'jspdf-autotable'; // Import autoTable plugin
-import type { TestResultItem, AppQuestion } from '@/types';
+import 'jspdf-autotable'; 
+import type { TestResultItem } from '@/types';
 
-// Extend jsPDF with autoTable, if types are not globally available
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDF;
 }
+
+const formatTimeTakenForPdf = (seconds?: number): string => {
+  if (seconds === undefined || seconds < 0) return 'N/A';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+
+  if (h > 0) {
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+};
 
 export function generateTestPdf(result: TestResultItem): void {
   const doc = new jsPDF() as jsPDFWithAutoTable;
@@ -26,6 +37,8 @@ export function generateTestPdf(result: TestResultItem): void {
   currentY += 7;
   doc.text(`Date: ${new Date(result.dateCompleted).toLocaleDateString()}`, 15, currentY);
   currentY += 7;
+  doc.text(`Time Taken: ${formatTimeTakenForPdf(result.timeTakenSeconds)}`, 15, currentY);
+  currentY += 7;
   
   if (result.testType === 'practice' && result.config) {
     doc.text(`Subject: ${result.config.subject}`, 15, currentY);
@@ -36,7 +49,6 @@ export function generateTestPdf(result: TestResultItem): void {
     currentY += 7;
   }
 
-  // New Summary Stats
   doc.text(`Total Questions: ${result.questions.length}`, 15, currentY);
   currentY += 7;
   doc.text(`Attempted Questions: ${result.score.correct + result.score.incorrect}`, 15, currentY);
@@ -59,8 +71,7 @@ export function generateTestPdf(result: TestResultItem): void {
     currentY += 7;
   });
   
-  // Questions and Answers Table
-  currentY += 5; // Add some space before table
+  currentY += 5; 
   doc.setFontSize(14);
   doc.text('Questions & Answers Analysis', 15, currentY);
   currentY += 7;
@@ -97,17 +108,16 @@ export function generateTestPdf(result: TestResultItem): void {
     body: tableRows,
     startY: currentY,
     theme: 'grid',
-    headStyles: { fillColor: [75, 0, 130] }, // Primary color: Deep Indigo
+    headStyles: { fillColor: [75, 0, 130] }, 
     styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
     columnStyles: {
-      0: { cellWidth: 10, halign: 'center' }, // #
-      1: { cellWidth: 95 }, // Question & Options
-      2: { cellWidth: 30 }, // Your Answer
-      3: { cellWidth: 30 }, // Correct Answer
-      4: { cellWidth: 15, halign: 'center' }, // Marks
+      0: { cellWidth: 10, halign: 'center' }, 
+      1: { cellWidth: 95 }, 
+      2: { cellWidth: 30 }, 
+      3: { cellWidth: 30 }, 
+      4: { cellWidth: 15, halign: 'center' }, 
     },
     didDrawPage: (data) => {
-        // Footer
         const pageCount = doc.internal.pages.length; 
         if (pageCount > 0 ) { 
           doc.setFontSize(8);
@@ -119,4 +129,3 @@ export function generateTestPdf(result: TestResultItem): void {
   const fileName = `TestPrepAI_${result.testTitle || result.testType}_${new Date(result.dateCompleted).toISOString().split('T')[0]}.pdf`;
   doc.save(fileName);
 }
-

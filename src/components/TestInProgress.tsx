@@ -12,11 +12,12 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import TestInProgressHeader from './TestInProgressHeader';
 import TestInProgressSidebar from './TestInProgressSidebar';
+import LoadingSpinner from './LoadingSpinner'; // Added import
 
 interface TestInProgressProps {
   questions: AppQuestion[];
   durationMinutes: number;
-  onTestSubmit: (answers: Record<string, string>, originalQuizId: string) => void;
+  onTestSubmit: (answers: Record<string, string>, originalQuizId: string, timeTakenSeconds: number) => void;
   testType: 'mock' | 'practice';
   originalQuizId: string; // ID of the original set of questions
   practiceTestConfig?: { subject: string; chapter: string; };
@@ -36,9 +37,9 @@ export default function TestInProgress({
   const [visitedQuestions, setVisitedQuestions] = useState<Set<string>>(new Set());
   
   const handleTimerEnd = useCallback(() => {
-    // Pass originalQuizId along with answers
-    onTestSubmit(userAnswers, originalQuizId);
-  }, [onTestSubmit, userAnswers, originalQuizId]);
+    const timeTaken = (durationMinutes * 60) - totalSecondsLeft; // totalSecondsLeft would be 0 or close
+    onTestSubmit(userAnswers, originalQuizId, timeTaken);
+  }, [onTestSubmit, userAnswers, originalQuizId, durationMinutes]);
 
   const { minutes, seconds, isActive, startTimer, stopTimer, totalSecondsLeft } = useTestTimer(durationMinutes, handleTimerEnd);
 
@@ -52,7 +53,8 @@ export default function TestInProgress({
     if (questions.length > 0 && questions[0]) {
       setVisitedQuestions(prev => new Set(prev).add(questions[0].id));
     }
-  }, [questions, startTimer]); // Rerun if questions array instance changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questions, startTimer]); // Rerun if questions array instance changes, startTimer has its own deps
 
   useEffect(() => {
     return () => stopTimer(); // Cleanup timer on unmount
@@ -88,7 +90,8 @@ export default function TestInProgress({
 
   const handleSubmitTest = () => {
     stopTimer();
-    onTestSubmit(userAnswers, originalQuizId);
+    const elapsedSeconds = (durationMinutes * 60) - totalSecondsLeft;
+    onTestSubmit(userAnswers, originalQuizId, elapsedSeconds);
   };
 
   const handleMarkForReviewAndNext = () => {
@@ -164,7 +167,7 @@ export default function TestInProgress({
                 {totalSecondsLeft} seconds remaining!
               </p>
             )}
-             {totalSecondsLeft === 0 && ( // Show message when time is up, regardless of isActive, as timerEnd callback handles submission.
+             {totalSecondsLeft === 0 && ( 
               <p className="text-center text-destructive font-bold text-lg p-4 bg-destructive/10 rounded-md">
                 Time's up!
               </p>

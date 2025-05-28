@@ -40,6 +40,7 @@ export interface TestResultItem {
   score: TestScore;
   questions: AppQuestion[]; // Questions with user's answers for this attempt
   config?: PracticeTestConfig; // Stored for context, especially if practice test
+  timeTakenSeconds?: number; // Time taken by user in seconds
 }
 
 // New type for storing the quiz questions themselves

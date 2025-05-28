@@ -23,6 +23,18 @@ const getMark = (question: AppQuestion): number => {
     return -1; // Incorrect
 };
 
+const formatTimeTaken = (seconds?: number): string => {
+  if (seconds === undefined || seconds < 0) return 'N/A';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+
+  if (h > 0) {
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+};
+
 interface SubjectPerformance {
   subject: string;
   totalQuestions: number;
@@ -35,7 +47,7 @@ interface SubjectPerformance {
 }
 
 export default function TestResultsDisplay({ result, onNavigateHome }: TestResultsDisplayProps) {
-  const { score, questions, testType, originalQuizId, testTitle } = result;
+  const { score, questions, testType, originalQuizId, testTitle, timeTakenSeconds } = result;
   const router = useRouter();
 
   const handleRetakeTest = () => {
@@ -56,21 +68,22 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
     const performanceBySubject: Record<string, { total: number; correct: number; incorrect: number; unanswered: number; marksObtained: number; maxMarks: number }> = {};
 
     questions.forEach(q => {
-      if (!performanceBySubject[q.subject]) {
-        performanceBySubject[q.subject] = { total: 0, correct: 0, incorrect: 0, unanswered: 0, marksObtained: 0, maxMarks: 0 };
+      const subjectKey = q.subject || "Uncategorized"; // Handle cases where subject might be missing, though schema should prevent this.
+      if (!performanceBySubject[subjectKey]) {
+        performanceBySubject[subjectKey] = { total: 0, correct: 0, incorrect: 0, unanswered: 0, marksObtained: 0, maxMarks: 0 };
       }
-      performanceBySubject[q.subject].total++;
-      performanceBySubject[q.subject].maxMarks += 4;
+      performanceBySubject[subjectKey].total++;
+      performanceBySubject[subjectKey].maxMarks += 4;
 
       const mark = getMark(q);
       if (mark === 4) {
-        performanceBySubject[q.subject].correct++;
-        performanceBySubject[q.subject].marksObtained += 4;
+        performanceBySubject[subjectKey].correct++;
+        performanceBySubject[subjectKey].marksObtained += 4;
       } else if (mark === -1) {
-        performanceBySubject[q.subject].incorrect++;
-        performanceBySubject[q.subject].marksObtained -= 1;
+        performanceBySubject[subjectKey].incorrect++;
+        performanceBySubject[subjectKey].marksObtained -= 1;
       } else {
-        performanceBySubject[q.subject].unanswered++;
+        performanceBySubject[subjectKey].unanswered++;
       }
     });
 
@@ -91,10 +104,11 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
     subjectPerformance.sort((a, b) => b.percentage - a.percentage);
   }
 
-  const strongestSubject = subjectPerformance.length > 0 ? subjectPerformance[0] : null;
-  const weakestSubject = subjectPerformance.length > 0 && subjectPerformance.length > 1 && subjectPerformance[0].percentage !== subjectPerformance[subjectPerformance.length - 1].percentage 
+  const allScoresSame = subjectPerformance.length > 1 && subjectPerformance.every(s => s.percentage === subjectPerformance[0].percentage);
+  const strongestSubject = !allScoresSame && subjectPerformance.length > 0 ? subjectPerformance[0] : null;
+  const weakestSubject = !allScoresSame && subjectPerformance.length > 1 && subjectPerformance[0].percentage !== subjectPerformance[subjectPerformance.length - 1].percentage 
     ? subjectPerformance[subjectPerformance.length - 1] 
-    : (subjectPerformance.length === 1 ? null : subjectPerformance[subjectPerformance.length - 1]);
+    : null;
 
 
   return (
@@ -138,15 +152,12 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
              <div className="flex items-center space-x-2 p-2 bg-secondary/30 rounded-md">
                 <Clock className="h-5 w-5 text-blue-500" />
                 <span className="font-semibold">Time Taken:</span>
-                <span>N/A</span> {/* Placeholder */}
+                <span>{formatTimeTaken(timeTakenSeconds)}</span> 
             </div>
             <div className="font-bold text-lg col-span-full text-center pt-3 text-primary">
               Total Score: {score.totalScore} / {score.maxScore}
             </div>
           </CardContent>
-           <CardFooter className="text-xs text-muted-foreground pt-2">
-            Time Taken is a planned feature. Data for it is not yet recorded.
-          </CardFooter>
         </Card>
 
         {subjectPerformance.length > 0 && (
@@ -170,20 +181,23 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
               ))}
               <Separator className="my-4" />
               <div className="text-sm space-y-1">
-                {strongestSubject && (
+                {allScoresSame && subjectPerformance.length > 0 && (
+                    <p className="text-muted-foreground">Performance is consistent across subjects ({subjectPerformance[0].percentage}%).</p>
+                )}
+                {!allScoresSame && strongestSubject && (
                   <div className="flex items-center">
                     <TrendingUp className="h-5 w-5 text-green-500 mr-2" /> 
                     <span className="font-semibold">Strongest Area:</span> {strongestSubject.subject} ({strongestSubject.percentage}%)
                   </div>
                 )}
-                {weakestSubject && strongestSubject?.subject !== weakestSubject.subject && (
+                {!allScoresSame && weakestSubject && (
                   <div className="flex items-center">
                      <TrendingDown className="h-5 w-5 text-red-500 mr-2" /> 
                      <span className="font-semibold">Needs More Focus:</span> {weakestSubject.subject} ({weakestSubject.percentage}%)
                   </div>
                 )}
-                 {weakestSubject && strongestSubject?.subject === weakestSubject.subject && subjectPerformance.length > 1 && (
-                   <p className="text-muted-foreground">Performance is consistent across subjects.</p>
+                 {!allScoresSame && subjectPerformance.length === 1 && strongestSubject && (
+                    <p className="text-muted-foreground">Performance in {strongestSubject.subject}: {strongestSubject.percentage}%</p>
                  )}
               </div>
             </CardContent>
@@ -259,4 +273,3 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
     </Card>
   );
 }
-

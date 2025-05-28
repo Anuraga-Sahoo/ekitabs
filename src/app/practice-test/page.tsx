@@ -88,19 +88,19 @@ export default function PracticeTestPage() {
       setTestState('inProgress');
     } else {
       toast({ title: "Error", description: "Could not find the practice test to retake or its configuration is missing.", variant: "destructive" });
-      router.replace('/practice-test'); // Clear query params
+      router.replace('/practice-test'); 
       setTestState('setup');
     }
   }, [router, toast]);
 
   useEffect(() => {
     const retakeQuizId = searchParams.get('retakeQuizId');
-    if (retakeQuizId && testState === 'setup') { // Only process if in setup state
+    if (retakeQuizId && testState === 'setup') { 
         startRetakeTest(retakeQuizId);
     }
   }, [searchParams, startRetakeTest, testState]);
 
-  const handleSubmitTest = (userAnswers: Record<string, string>) => {
+  const handleSubmitTest = (userAnswers: Record<string, string>, originalQuizId: string, timeTakenSeconds: number) => {
     if (!currentTestConfig || !currentOriginalQuizId) {
         toast({ title: "Error", description: "Test configuration or ID is missing.", variant: "destructive" });
         return;
@@ -132,13 +132,14 @@ export default function PracticeTestPage() {
     const score: TestScore = { correct, incorrect, unanswered, totalScore, maxScore };
     const resultData: TestResultItem = {
       testAttemptId: `practice-attempt-${Date.now()}`,
-      originalQuizId: currentOriginalQuizId,
+      originalQuizId: currentOriginalQuizId, // Use state variable
       testType: 'practice',
       testTitle: testTitle,
       dateCompleted: new Date().toISOString(),
       score,
       questions: answeredQuestions,
       config: currentTestConfig,
+      timeTakenSeconds,
     };
     
     setTestResult(resultData);
@@ -153,7 +154,7 @@ export default function PracticeTestPage() {
     setCurrentTestConfig(null);
     setCurrentOriginalQuizId(null);
     setTestResult(null);
-    router.replace('/practice-test'); // Clear query params
+    router.replace('/practice-test'); 
   };
 
   if (testState === 'loading') {
