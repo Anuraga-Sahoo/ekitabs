@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { getTestHistory, clearTestHistory } from '@/lib/localStorageHelper';
+import { getTestHistory, clearTestHistory, deleteTestResult } from '@/lib/localStorageHelper';
 import type { TestResultItem } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,20 +22,29 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
 
 export default function TestHistoryPage() {
   const [history, setHistory] = useState<TestResultItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     setHistory(getTestHistory());
     setIsLoading(false);
   }, []);
 
-  const handleClearHistory = () => {
+  const handleClearAllHistory = () => {
     clearTestHistory();
     setHistory([]);
+    toast({ title: "History Cleared", description: "All test history has been deleted." });
+  };
+
+  const handleDeleteSingleTest = (testAttemptId: string) => {
+    deleteTestResult(testAttemptId);
+    setHistory(prevHistory => prevHistory.filter(item => item.testAttemptId !== testAttemptId));
+    toast({ title: "Test Deleted", description: "The selected test has been removed from your history." });
   };
 
   const handleRetakeTest = (item: TestResultItem) => {
@@ -43,8 +52,7 @@ export default function TestHistoryPage() {
       const path = item.testType === 'mock' ? '/mock-test' : '/practice-test';
       router.push(`${path}?retakeQuizId=${item.originalQuizId}`);
     } else {
-      // Handle case where originalQuizId might be missing (should not happen with new saves)
-      alert("Could not find original test data to retake.");
+      toast({ title: "Error", description: "Could not find original test data to retake.", variant: "destructive" });
     }
   };
 
@@ -56,7 +64,7 @@ export default function TestHistoryPage() {
     <Card className="w-full max-w-4xl mx-auto shadow-xl my-8">
       <CardHeader>
         <CardTitle className="text-3xl font-bold text-primary">Test History</CardTitle>
-        <CardDescription>Review your past test performances, download reports, and retake tests.</CardDescription>
+        <CardDescription>Review your past test performances, download reports, retake tests, or delete specific entries.</CardDescription>
       </CardHeader>
       <CardContent>
         {history.length === 0 ? (
@@ -89,6 +97,30 @@ export default function TestHistoryPage() {
                       <Button variant="ghost" size="icon" onClick={() => generateTestPdf(item)} title="Download PDF">
                         <Download className="h-4 w-4 text-accent" />
                       </Button>
+                       <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" title="Delete Test">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action will permanently delete this test result. This cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteSingleTest(item.testAttemptId)}
+                              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                            >
+                              Yes, delete test
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -102,20 +134,20 @@ export default function TestHistoryPage() {
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive">
-                <Trash2 className="mr-2 h-4 w-4" /> Clear History
+                <Trash2 className="mr-2 h-4 w-4" /> Clear All History
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete all your test history.
+                  This action cannot be undone. This will permanently delete ALL your test history.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleClearHistory} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
-                  Yes, delete history
+                <AlertDialogAction onClick={handleClearAllHistory} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                  Yes, delete all history
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

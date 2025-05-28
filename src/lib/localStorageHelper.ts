@@ -28,6 +28,13 @@ export function saveTestResult(result: TestResultItem): void {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
 }
 
+export function deleteTestResult(testAttemptId: string): void {
+  if (typeof window === 'undefined') return;
+  let history = getTestHistory();
+  history = history.filter(item => item.testAttemptId !== testAttemptId);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+}
+
 export function clearTestHistory(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(HISTORY_KEY);
