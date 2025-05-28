@@ -34,8 +34,8 @@ const features = [
 
 export default function Home() {
   return (
-    <div className="flex flex-col items-center space-y-12 md:space-y-20">
-      <section className="w-full py-12 md:py-20 lg:py-28 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-lg shadow-xl">
+    <div className="flex flex-col items-center space-y-12 md:space-y-16">
+      <section className="w-full py-10 md:py-16 lg:py-24 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-lg shadow-xl">
         <div className="container px-4 md:px-6 text-center">
           <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl drop-shadow-md">
             Welcome to TestPrep AI
@@ -43,19 +43,19 @@ export default function Home() {
           <p className="mt-4 max-w-[700px] mx-auto text-lg md:text-xl lg:text-2xl text-primary-foreground/90 drop-shadow-sm">
             Your ultimate platform for AI-powered mock tests and personalized practice. Prepare smarter, not harder.
           </p>
-          <div className="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6">
-            <Button 
-              size="lg" 
-              asChild 
+          <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6">
+            <Button
+              size="lg"
+              asChild
               className="bg-background text-foreground hover:bg-background/90 w-full sm:w-auto transition-transform duration-200 ease-in-out hover:-translate-y-0.5"
             >
               <Link href="/mock-test">Start Mock Test <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              asChild 
-              className="border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10 w-full sm:w-auto transition-transform duration-200 ease-in-out hover:-translate-y-0.5"
+            <Button
+              size="lg"
+              variant="outline"
+              asChild
+              className="border-primary-foreground/50 text-foreground hover:bg-primary-foreground/10 w-full sm:w-auto transition-transform duration-200 ease-in-out hover:-translate-y-0.5"
             >
               <Link href="/practice-test">Create Practice Test <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
@@ -64,7 +64,7 @@ export default function Home() {
       </section>
 
       <section className="w-full container px-4 md:px-6">
-        <div className="text-center mb-10 md:mb-12 lg:mb-16">
+        <div className="text-center mb-8 md:mb-10 lg:mb-12">
           <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-primary">
             Unlock Your Potential
           </h2>
@@ -74,8 +74,8 @@ export default function Home() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature) => (
-            <Card 
-              key={feature.title} 
+            <Card
+              key={feature.title}
               className="transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1 flex flex-col bg-card"
             >
               <CardHeader className="items-center text-center pt-6 pb-4">
@@ -84,17 +84,17 @@ export default function Home() {
               </CardHeader>
               <CardContent className="flex-grow flex flex-col text-center p-6 pt-0">
                 <div className="mb-4">
-                  <Image 
-                    src={feature.image} 
-                    alt={feature.title} 
-                    width={600} 
-                    height={400} 
+                  <Image
+                    src={feature.image}
+                    alt={feature.title}
+                    width={600}
+                    height={400}
                     className="rounded-lg aspect-[3/2] object-cover"
                     data-ai-hint={feature.imageHint}
                   />
                 </div>
                 <CardDescription className="text-base mb-6 flex-grow">{feature.description}</CardDescription>
-                <Button asChild variant="default" className="mt-auto bg-accent hover:bg-accent/90 text-accent-foreground w-full">
+                <Button asChild variant="default" className="mt-auto bg-accent hover:bg-accent/90 text-accent-foreground w-full transition-transform duration-200 ease-in-out hover:-translate-y-0.5">
                   <Link href={feature.href}>
                     Go to {feature.title} <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
