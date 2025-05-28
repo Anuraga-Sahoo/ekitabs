@@ -46,9 +46,9 @@ export default function TestInProgressSidebar({
 
     let status: QuestionStatus;
     if (isAnswered && isMarked) status = 'markedAndAnswered';
-    else if (isAnswered) status = 'answered'; // Answered and not marked
-    else if (isMarked) status = 'markedForReview'; // Marked and not answered
-    else if (isVisited) status = 'notAnswered'; // Visited, not answered, not marked
+    else if (isAnswered) status = 'answered'; 
+    else if (isMarked) status = 'markedForReview'; 
+    else if (isVisited) status = 'notAnswered'; 
     else status = 'notVisited';
     
     return { status, isCurrent };
@@ -90,9 +90,10 @@ export default function TestInProgressSidebar({
       </CardHeader>
 
       <CardContent className="p-3 flex-grow overflow-hidden flex flex-col">
-        <div className="mb-3">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Question Status</h3>
-          <div className="grid grid-cols-1 gap-y-1 text-xs"> {/* Changed to 1 column for better readability with counts */}
+        {/* Question Status Legend Group - will take its natural height */}
+        <div className="mb-2 flex-shrink-0">
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Question Status</h3>
+          <div className="grid grid-cols-1 gap-y-0.5 text-xs"> {/* Reduced gap-y */}
             {legendItems.map(item => (
               <div key={item.label} className="flex items-center gap-1.5">
                 <span className={cn("h-3.5 w-3.5 rounded-full flex items-center justify-center shrink-0", item.color)}>
@@ -104,36 +105,39 @@ export default function TestInProgressSidebar({
           </div>
         </div>
         
-        <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2 mt-2">Question Palette</h3>
-        <ScrollArea className="flex-grow border rounded-md">
-          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-4 lg:grid-cols-5 gap-1.5 p-2">
-            {questions.map((q, index) => {
-              const { status, isCurrent } = getQuestionState(q.id);
-              let buttonClass = "bg-slate-200 hover:bg-slate-300 text-slate-700"; // Not Visited
-              if (status === 'answered') buttonClass = "bg-green-500 hover:bg-green-600 text-white";
-              else if (status === 'notAnswered') buttonClass = "bg-red-500 hover:bg-red-600 text-white"; // Visited but not answered
-              else if (status === 'markedForReview') buttonClass = "bg-purple-500 hover:bg-purple-600 text-white"; // Marked, not answered
-              else if (status === 'markedAndAnswered') buttonClass = "bg-purple-500 hover:bg-purple-600 text-white ring-1 ring-green-400 ring-offset-0"; // Marked and answered
+        {/* Question Palette Group - this group will grow */}
+        <div className="flex flex-col flex-grow mt-2 overflow-hidden">
+          <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-1 flex-shrink-0">Question Palette</h3>
+          <ScrollArea className="flex-1 border rounded-md min-h-0"> {/* flex-1 and min-h-0 for growth */}
+            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-4 lg:grid-cols-5 gap-1.5 p-2">
+              {questions.map((q, index) => {
+                const { status, isCurrent } = getQuestionState(q.id);
+                let buttonClass = "bg-slate-200 hover:bg-slate-300 text-slate-700"; // Not Visited
+                if (status === 'answered') buttonClass = "bg-green-500 hover:bg-green-600 text-white";
+                else if (status === 'notAnswered') buttonClass = "bg-red-500 hover:bg-red-600 text-white"; 
+                else if (status === 'markedForReview') buttonClass = "bg-purple-500 hover:bg-purple-600 text-white"; 
+                else if (status === 'markedAndAnswered') buttonClass = "bg-purple-500 hover:bg-purple-600 text-white ring-1 ring-green-400 ring-offset-0"; 
 
-              return (
-                <Button
-                  key={q.id}
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "h-8 w-full text-xs p-0 font-medium", // Added font-medium for better readability of numbers
-                    buttonClass,
-                    isCurrent && "ring-2 ring-primary ring-offset-1 dark:ring-offset-card" // Ensure offset works in dark mode
-                  )}
-                  onClick={() => onQuestionSelect(index)}
-                  title={`Question ${index + 1} - Status: ${status.replace(/([A-Z])/g, ' $1').trim()}`} // Tooltip for status
-                >
-                  {index + 1}
-                </Button>
-              );
-            })}
-          </div>
-        </ScrollArea>
+                return (
+                  <Button
+                    key={q.id}
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "h-8 w-full text-xs p-0 font-medium", 
+                      buttonClass,
+                      isCurrent && "ring-2 ring-primary ring-offset-1 dark:ring-offset-card" 
+                    )}
+                    onClick={() => onQuestionSelect(index)}
+                    title={`Question ${index + 1} - Status: ${status.replace(/([A-Z])/g, ' $1').trim()}`}
+                  >
+                    {index + 1}
+                  </Button>
+                );
+              })}
+            </div>
+          </ScrollArea>
+        </div>
       </CardContent>
 
       <div className="p-3 border-t mt-auto">
@@ -144,4 +148,3 @@ export default function TestInProgressSidebar({
     </div>
   );
 }
-
