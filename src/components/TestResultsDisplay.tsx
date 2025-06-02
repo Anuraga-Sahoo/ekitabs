@@ -63,20 +63,11 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
   
   const handleStartNextQuiz = () => {
     if (testType === 'mock') {
-      router.push('/mock-test'); // This will start a new mock test
-    } else if (testType === 'practice' && config) {
-      // Navigate to practice test page with config to auto-start a new test on the same topic
-      const queryParams = new URLSearchParams({
-        subject: config.subject,
-        chapter: config.chapter,
-        numberOfQuestions: String(config.numberOfQuestions),
-        complexityLevel: config.complexityLevel,
-        autoStartNew: 'true',
-      });
-      router.push(`/practice-test?${queryParams.toString()}`);
+      router.push('/mock-test'); 
+    } else if (testType === 'practice') {
+      router.push('/practice-test'); // Navigate to the practice test setup page
     } else {
-      // Fallback for practice test if config is missing (should not happen ideally)
-      router.push('/practice-test');
+      router.push('/'); // Fallback to home
     }
   };
 
@@ -328,3 +319,6 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
     </div>
   );
 }
+
+
+    
