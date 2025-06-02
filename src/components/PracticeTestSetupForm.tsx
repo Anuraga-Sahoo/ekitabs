@@ -127,7 +127,7 @@ export default function PracticeTestSetupForm({ onSubmit, isLoading }: PracticeT
                       <SelectValue placeholder="Select a chapter" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent className="max-h-72">
                     {availableChapters.map((chapterName) => (
                       <SelectItem key={chapterName} value={chapterName}>
                         {chapterName}
