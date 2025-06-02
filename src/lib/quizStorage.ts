@@ -26,8 +26,9 @@ export async function saveGeneratedQuiz(quiz: StoredQuiz): Promise<void> {
     await collection.updateOne({ id: quiz.id }, { $set: quiz }, { upsert: true });
     console.log(`Quiz ${quiz.id} saved to MongoDB.`);
   } catch (error) {
-    console.error("Error saving quiz to MongoDB:", error);
-    throw new Error("Failed to save quiz to database.");
+    const originalErrorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Error saving quiz to MongoDB:", originalErrorMessage); // Check server console for this detailed log
+    throw new Error(`Failed to save quiz to database. Original error: ${originalErrorMessage}`);
   }
 }
 
@@ -45,8 +46,8 @@ export async function getGeneratedQuiz(id: string): Promise<StoredQuiz | null> {
     }
     return quiz as StoredQuiz | null;
   } catch (error) {
-    console.error("Error retrieving quiz from MongoDB:", error);
-    throw new Error("Failed to retrieve quiz from database.");
+    const originalErrorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Error retrieving quiz from MongoDB:", originalErrorMessage); // Check server console for this detailed log
+    throw new Error(`Failed to retrieve quiz from database. Original error: ${originalErrorMessage}`);
   }
 }
-
