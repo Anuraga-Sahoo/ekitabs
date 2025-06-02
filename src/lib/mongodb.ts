@@ -6,7 +6,9 @@ if (!process.env.MONGODB_URI) {
 }
 
 const uri = process.env.MONGODB_URI;
-const options = {};
+const options = {
+  tls: true, // Explicitly enable TLS
+};
 
 let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
