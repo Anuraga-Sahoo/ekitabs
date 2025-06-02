@@ -9,7 +9,8 @@ import TestResultsDisplay from '@/components/TestResultsDisplay';
 import { generateMockTest, type GenerateMockTestOutput } from '@/ai/flows/generate-mock-test';
 import type { AppQuestion, TestResultItem, TestScore, StoredQuiz } from '@/types';
 import { saveTestResult } from '@/lib/localStorageHelper';
-import { saveGeneratedQuiz, getGeneratedQuiz, generateQuizId } from '@/lib/quizStorage';
+import { saveGeneratedQuiz, getGeneratedQuiz } from '@/lib/quizStorage';
+import { generateQuizId } from '@/lib/quizUtils'; // Changed import
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlayCircle } from 'lucide-react';
@@ -140,7 +141,7 @@ export default function MockTestPage() {
     };
     
     setTestResult(resultData);
-    saveTestResult(resultData); // This still saves to localStorage
+    saveTestResult(resultData); 
     setTestState('completed');
     toast({ title: "Test Submitted!", description: "Your mock test results are ready." });
   };

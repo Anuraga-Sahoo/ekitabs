@@ -9,7 +9,8 @@ import TestResultsDisplay from '@/components/TestResultsDisplay';
 import { generatePracticeQuestions, type GeneratePracticeQuestionsOutput } from '@/ai/flows/generate-practice-questions';
 import type { AppQuestion, PracticeTestConfig, TestResultItem, TestScore, StoredQuiz } from '@/types';
 import { saveTestResult } from '@/lib/localStorageHelper';
-import { saveGeneratedQuiz, getGeneratedQuiz, generateQuizId } from '@/lib/quizStorage';
+import { saveGeneratedQuiz, getGeneratedQuiz } from '@/lib/quizStorage';
+import { generateQuizId } from '@/lib/quizUtils'; // Changed import
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -151,7 +152,7 @@ export default function PracticeTestPage() {
     };
     
     setTestResult(resultData);
-    saveTestResult(resultData); // This still saves to localStorage
+    saveTestResult(resultData);
     setTestState('completed');
     toast({ title: "Practice Test Submitted!", description: "Your results are ready." });
   };
