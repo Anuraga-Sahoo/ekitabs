@@ -10,7 +10,7 @@ import { generatePracticeQuestions, type GeneratePracticeQuestionsOutput } from 
 import type { AppQuestion, PracticeTestConfig, TestResultItem, TestScore, StoredQuiz } from '@/types';
 import { saveTestResult } from '@/lib/localStorageHelper';
 import { saveGeneratedQuiz, getGeneratedQuiz } from '@/lib/quizStorage';
-import { generateQuizId } from '@/lib/quizUtils'; // Changed import
+import { generateQuizId } from '@/lib/quizUtils';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -67,12 +67,19 @@ export default function PracticeTestPage() {
         setDurationMinutes(config.numberOfQuestions * PRACTICE_TEST_MINUTES_PER_QUESTION);
         setTestState('inProgress');
       } else {
-        toast({ title: "Error", description: "Failed to generate practice MCQs.", variant: "destructive" });
+        toast({ title: "Error", description: "Failed to generate practice MCQs. The AI model might have returned an empty or invalid response.", variant: "destructive" });
         setTestState('setup');
       }
     } catch (error) {
       console.error("Error generating practice test:", error);
-      toast({ title: "Error", description: "An error occurred while generating the practice test.", variant: "destructive" });
+      const description = error instanceof Error 
+        ? `Details: ${error.message}` 
+        : "An unknown error occurred. Please check the server console for more details.";
+      toast({ 
+        title: "Practice Test Generation Failed", 
+        description: description, 
+        variant: "destructive" 
+      });
       setTestState('setup');
     }
   }, [toast]);
@@ -95,7 +102,8 @@ export default function PracticeTestPage() {
       }
     } catch (error) {
        console.error("Error retaking practice test:", error);
-       toast({ title: "Error", description: "An error occurred while trying to retake the test.", variant: "destructive" });
+       const description = error instanceof Error ? `Details: ${error.message}` : "Failed to load the test for retake.";
+       toast({ title: "Error Retaking Test", description: description, variant: "destructive" });
        router.replace('/practice-test');
        setTestState('setup');
     }
@@ -111,7 +119,7 @@ export default function PracticeTestPage() {
 
   const handleSubmitTest = (userAnswers: Record<string, string>, originalQuizId: string, timeTakenSeconds: number) => {
     if (!currentTestConfig || !currentOriginalQuizId) {
-        toast({ title: "Error", description: "Test configuration or ID is missing.", variant: "destructive" });
+        toast({ title: "Error Submitting Test", description: "Test configuration or ID is missing. Cannot submit.", variant: "destructive" });
         return;
     }
 
@@ -195,3 +203,4 @@ export default function PracticeTestPage() {
     </div>
   );
 }
+
