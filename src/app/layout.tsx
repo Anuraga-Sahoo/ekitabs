@@ -3,6 +3,7 @@ import type {Metadata} from 'next';
 import {Geist, Geist_Mono} from 'next/font/google';
 import './globals.css';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer'; // Import the Footer component
 import { Toaster } from "@/components/ui/toaster";
 
 const geistSans = Geist({
@@ -32,6 +33,7 @@ export default function RootLayout({
         <main className="flex-grow container mx-auto px-4 py-8">
           {children}
         </main>
+        <Footer /> {/* Add the Footer component here */}
         <Toaster />
       </body>
     </html>
