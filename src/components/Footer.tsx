@@ -26,16 +26,6 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Help & Support */}
-          <div>
-            <h5 className="text-lg font-semibold text-white mb-4">Help & Support</h5>
-            <ul className="space-y-2">
-              <li><Link href="#" className="hover:text-white transition-colors">Help Center</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Report an Issue</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Grievances</Link></li>
-            </ul>
-          </div>
-
           {/* User Guidelines */}
           <div>
             <h5 className="text-lg font-semibold text-white mb-4">Legal</h5>
