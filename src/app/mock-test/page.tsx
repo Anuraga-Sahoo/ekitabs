@@ -53,7 +53,7 @@ export default function MockTestPage() {
           createdAt: new Date().toISOString(),
           title: MOCK_TEST_TITLE,
         };
-        saveGeneratedQuiz(quizToStore); 
+        await saveGeneratedQuiz(quizToStore); 
 
         setQuestions(transformedQuestions);
         setCurrentOriginalQuizId(newOriginalQuizId);
@@ -69,17 +69,24 @@ export default function MockTestPage() {
     }
   };
 
-  const startRetakeTest = useCallback((quizId: string) => {
+  const startRetakeTest = useCallback(async (quizId: string) => {
     setTestState('loading');
-    const storedQuiz = getGeneratedQuiz(quizId);
-    if (storedQuiz && storedQuiz.testType === 'mock') {
-      const questionsForRetake = storedQuiz.questions.map(q => ({ ...q, userAnswer: undefined }));
-      setQuestions(questionsForRetake);
-      setCurrentOriginalQuizId(storedQuiz.id);
-      setTestState('inProgress');
-    } else {
-      toast({ title: "Error", description: "Could not find the test to retake or it's not a mock test.", variant: "destructive" });
-      router.replace('/mock-test'); 
+    try {
+      const storedQuiz = await getGeneratedQuiz(quizId);
+      if (storedQuiz && storedQuiz.testType === 'mock') {
+        const questionsForRetake = storedQuiz.questions.map(q => ({ ...q, userAnswer: undefined }));
+        setQuestions(questionsForRetake);
+        setCurrentOriginalQuizId(storedQuiz.id);
+        setTestState('inProgress');
+      } else {
+        toast({ title: "Error", description: "Could not find the test to retake or it's not a mock test.", variant: "destructive" });
+        router.replace('/mock-test'); 
+        setTestState('idle');
+      }
+    } catch (error) {
+      console.error("Error retaking mock test:", error);
+      toast({ title: "Error", description: "An error occurred while trying to retake the test.", variant: "destructive" });
+      router.replace('/mock-test');
       setTestState('idle');
     }
   }, [router, toast]);
@@ -123,7 +130,7 @@ export default function MockTestPage() {
     const score: TestScore = { correct, incorrect, unanswered, totalScore, maxScore };
     const resultData: TestResultItem = {
       testAttemptId: `mock-attempt-${Date.now()}`,
-      originalQuizId: currentOriginalQuizId, // Use the state variable currentOriginalQuizId
+      originalQuizId: currentOriginalQuizId, 
       testType: 'mock',
       testTitle: MOCK_TEST_TITLE,
       dateCompleted: new Date().toISOString(),
@@ -133,7 +140,7 @@ export default function MockTestPage() {
     };
     
     setTestResult(resultData);
-    saveTestResult(resultData);
+    saveTestResult(resultData); // This still saves to localStorage
     setTestState('completed');
     toast({ title: "Test Submitted!", description: "Your mock test results are ready." });
   };

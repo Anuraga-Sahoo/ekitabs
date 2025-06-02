@@ -59,7 +59,7 @@ export default function PracticeTestPage() {
           createdAt: new Date().toISOString(),
           title: testTitle,
         };
-        saveGeneratedQuiz(quizToStore);
+        await saveGeneratedQuiz(quizToStore);
 
         setQuestions(transformedQuestions);
         setCurrentOriginalQuizId(newOriginalQuizId);
@@ -76,20 +76,27 @@ export default function PracticeTestPage() {
     }
   }, [toast]);
   
-  const startRetakeTest = useCallback((quizId: string) => {
+  const startRetakeTest = useCallback(async (quizId: string) => {
     setTestState('loading');
-    const storedQuiz = getGeneratedQuiz(quizId);
-    if (storedQuiz && storedQuiz.testType === 'practice' && storedQuiz.config) {
-      const questionsForRetake = storedQuiz.questions.map(q => ({ ...q, userAnswer: undefined }));
-      setQuestions(questionsForRetake);
-      setCurrentTestConfig(storedQuiz.config);
-      setCurrentOriginalQuizId(storedQuiz.id);
-      setDurationMinutes(storedQuiz.config.numberOfQuestions * PRACTICE_TEST_MINUTES_PER_QUESTION);
-      setTestState('inProgress');
-    } else {
-      toast({ title: "Error", description: "Could not find the practice test to retake or its configuration is missing.", variant: "destructive" });
-      router.replace('/practice-test'); 
-      setTestState('setup');
+    try {
+      const storedQuiz = await getGeneratedQuiz(quizId);
+      if (storedQuiz && storedQuiz.testType === 'practice' && storedQuiz.config) {
+        const questionsForRetake = storedQuiz.questions.map(q => ({ ...q, userAnswer: undefined }));
+        setQuestions(questionsForRetake);
+        setCurrentTestConfig(storedQuiz.config);
+        setCurrentOriginalQuizId(storedQuiz.id);
+        setDurationMinutes(storedQuiz.config.numberOfQuestions * PRACTICE_TEST_MINUTES_PER_QUESTION);
+        setTestState('inProgress');
+      } else {
+        toast({ title: "Error", description: "Could not find the practice test to retake or its configuration is missing.", variant: "destructive" });
+        router.replace('/practice-test'); 
+        setTestState('setup');
+      }
+    } catch (error) {
+       console.error("Error retaking practice test:", error);
+       toast({ title: "Error", description: "An error occurred while trying to retake the test.", variant: "destructive" });
+       router.replace('/practice-test');
+       setTestState('setup');
     }
   }, [router, toast]);
 
@@ -144,7 +151,7 @@ export default function PracticeTestPage() {
     };
     
     setTestResult(resultData);
-    saveTestResult(resultData);
+    saveTestResult(resultData); // This still saves to localStorage
     setTestState('completed');
     toast({ title: "Practice Test Submitted!", description: "Your results are ready." });
   };
@@ -187,6 +194,3 @@ export default function PracticeTestPage() {
     </div>
   );
 }
-
-
-    

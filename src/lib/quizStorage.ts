@@ -1,31 +1,66 @@
 
-import type { StoredQuiz, AppQuestion, PracticeTestConfig } from '@/types';
+import type { StoredQuiz } from '@/types';
+import clientPromise from '@/lib/mongodb';
+import { Collection, Db, MongoClient } from 'mongodb';
 
-// Key prefix for storing individual quizzes in localStorage
-const QUIZ_BANK_PREFIX = 'quizBank_';
+const QUIZZES_COLLECTION = 'quizzes';
+
+async function getDb(): Promise<Db> {
+  const client: MongoClient = await clientPromise;
+  return client.db();
+}
+
+async function getQuizzesCollection(): Promise<Collection<StoredQuiz>> {
+  const db = await getDb();
+  return db.collection<StoredQuiz>(QUIZZES_COLLECTION);
+}
 
 /**
- * Simulates saving a generated quiz (questions, type, config) to a "database" (localStorage).
- * In a real application, this would be an API call to a backend connected to MongoDB.
+ * Saves a generated quiz (questions, type, config) to MongoDB.
  */
-export function saveGeneratedQuiz(quiz: StoredQuiz): void {
-  if (typeof window === 'undefined') return;
+export async function saveGeneratedQuiz(quiz: StoredQuiz): Promise<void> {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
+    // This function should primarily be used server-side or in API routes.
+    // Allowing client-side for now during transition, but ideally this moves fully server-side.
+    console.warn("saveGeneratedQuiz called from client-side. This should ideally be a server operation.");
+  }
   try {
-    localStorage.setItem(`${QUIZ_BANK_PREFIX}${quiz.id}`, JSON.stringify(quiz));
+    const collection = await getQuizzesCollection();
+    // Using upsert to prevent duplicates if the same ID is somehow generated and saved again,
+    // or if we decide to update quizzes later.
+    await collection.updateOne({ id: quiz.id }, { $set: quiz }, { upsert: true });
+    console.log(`Quiz ${quiz.id} saved to MongoDB.`);
   } catch (error) {
-    console.error("Error saving quiz to localStorage:", error);
-    // Handle potential storage limit issues
+    console.error("Error saving quiz to MongoDB:", error);
+    // Re-throw the error if you want calling functions to handle it
+    throw new Error("Failed to save quiz to database.");
   }
 }
 
 /**
- * Simulates retrieving a generated quiz by its ID from the "database" (localStorage).
- * In a real application, this would be an API call.
+ * Retrieves a generated quiz by its ID from MongoDB.
  */
-export function getGeneratedQuiz(id: string): StoredQuiz | null {
-  if (typeof window === 'undefined') return null;
-  const quizJson = localStorage.getItem(`${QUIZ_BANK_PREFIX}${id}`);
-  return quizJson ? JSON.parse(quizJson) : null;
+export async function getGeneratedQuiz(id: string): Promise<StoredQuiz | null> {
+   if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
+    console.warn("getGeneratedQuiz called from client-side. This should ideally be a server operation.");
+  }
+  try {
+    const collection = await getQuizzesCollection();
+    // MongoDB's _id is an ObjectId. We are querying by our custom 'id' field.
+    // Need to exclude _id from the result if StoredQuiz type doesn't include it,
+    // or transform _id.toString() if it's part of the type.
+    // For now, assuming StoredQuiz does not have _id.
+    const quiz = await collection.findOne({ id: id }, { projection: { _id: 0 } });
+    if (quiz) {
+        console.log(`Quiz ${id} retrieved from MongoDB.`);
+    } else {
+        console.log(`Quiz ${id} not found in MongoDB.`);
+    }
+    return quiz as StoredQuiz | null; // Cast because projection might alter type slightly for TS
+  } catch (error) {
+    console.error("Error retrieving quiz from MongoDB:", error);
+    throw new Error("Failed to retrieve quiz from database.");
+  }
 }
 
 /**
