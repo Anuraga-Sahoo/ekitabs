@@ -67,14 +67,19 @@ export default function PracticeTestPage() {
         setDurationMinutes(config.numberOfQuestions * PRACTICE_TEST_MINUTES_PER_QUESTION);
         setTestState('inProgress');
       } else {
-        toast({ title: "Error", description: "Failed to generate practice MCQs. The AI model might have returned an empty or invalid response.", variant: "destructive" });
+        toast({ title: "Error Generating Test", description: "Failed to generate practice MCQs. The AI model might have returned an empty or invalid response.", variant: "destructive" });
         setTestState('setup');
       }
     } catch (error) {
       console.error("Error generating practice test:", error);
-      const description = error instanceof Error 
-        ? `Details: ${error.message}` 
-        : "An unknown error occurred. Please check the server console for more details.";
+      let description = "An error occurred while generating the practice test.";
+      if (error instanceof Error) {
+        if (error.message.includes("503") || error.message.toLowerCase().includes("model is overloaded")) {
+          description = "The AI model is currently overloaded. Please try again in a few moments.";
+        } else {
+          description = `Details: ${error.message}`;
+        }
+      }
       toast({ 
         title: "Practice Test Generation Failed", 
         description: description, 
@@ -192,7 +197,7 @@ export default function PracticeTestPage() {
   }
 
   if (testState === 'completed' && testResult) {
-    return <TestResultsDisplay result={testResult} onNavigateHome={() => router.push('/')} />;
+     return <TestResultsDisplay result={testResult} onNavigateHome={() => router.push('/')} />;
   }
 
   // Default to setup form

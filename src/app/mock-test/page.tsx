@@ -10,7 +10,7 @@ import { generateMockTest, type GenerateMockTestOutput } from '@/ai/flows/genera
 import type { AppQuestion, TestResultItem, TestScore, StoredQuiz } from '@/types';
 import { saveTestResult } from '@/lib/localStorageHelper';
 import { saveGeneratedQuiz, getGeneratedQuiz } from '@/lib/quizStorage';
-import { generateQuizId } from '@/lib/quizUtils'; // Changed import
+import { generateQuizId } from '@/lib/quizUtils';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlayCircle } from 'lucide-react';
@@ -60,12 +60,20 @@ export default function MockTestPage() {
         setCurrentOriginalQuizId(newOriginalQuizId);
         setTestState('inProgress');
       } else {
-        toast({ title: "Error", description: "Failed to generate mock test questions. Please try again.", variant: "destructive" });
+        toast({ title: "Error Generating Test", description: "Failed to generate mock test questions. The AI model might have returned an empty response. Please try again.", variant: "destructive" });
         setTestState('idle');
       }
     } catch (error) {
       console.error("Error generating mock test:", error);
-      toast({ title: "Error", description: "An error occurred while generating the test. Please try again.", variant: "destructive" });
+      let description = "An error occurred while generating the test. Please try again.";
+      if (error instanceof Error) {
+        if (error.message.includes("503") || error.message.toLowerCase().includes("model is overloaded")) {
+          description = "The AI model is currently overloaded. Please try again in a few moments.";
+        } else {
+          description = `Details: ${error.message}`;
+        }
+      }
+      toast({ title: "Mock Test Generation Failed", description, variant: "destructive" });
       setTestState('idle');
     }
   };
@@ -86,7 +94,7 @@ export default function MockTestPage() {
       }
     } catch (error) {
       console.error("Error retaking mock test:", error);
-      toast({ title: "Error", description: "An error occurred while trying to retake the test.", variant: "destructive" });
+      toast({ title: "Error Retaking Test", description: "An error occurred while trying to retake the test.", variant: "destructive" });
       router.replace('/mock-test');
       setTestState('idle');
     }
