@@ -23,6 +23,13 @@ interface TestInProgressProps {
   practiceTestConfig?: { subject: string; chapter: string; };
 }
 
+interface SubjectSection {
+  name: string;
+  startIndex: number;
+  endIndex: number;
+  count: number;
+}
+
 export default function TestInProgress({ 
   questions, 
   durationMinutes, 
@@ -35,6 +42,7 @@ export default function TestInProgress({
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [markedForReview, setMarkedForReview] = useState<Set<string>>(new Set());
   const [visitedQuestions, setVisitedQuestions] = useState<Set<string>>(new Set());
+  const [subjectSections, setSubjectSections] = useState<SubjectSection[]>([]);
   
   const handleTimerEndCallback = useCallback(() => {
     const timeTaken = (durationMinutes * 60) - totalSecondsLeft; 
@@ -56,6 +64,40 @@ export default function TestInProgress({
   }, [questions, startTimer]); 
 
   useEffect(() => {
+    if (questions.length > 0) {
+      const sections: SubjectSection[] = [];
+      if (questions.length === 0) {
+        setSubjectSections([]);
+        return;
+      }
+
+      let currentSubjectName = questions[0].subject;
+      let currentStartIndex = 0;
+      for (let i = 1; i < questions.length; i++) {
+        if (questions[i].subject !== currentSubjectName) {
+          sections.push({
+            name: currentSubjectName,
+            startIndex: currentStartIndex,
+            endIndex: i - 1,
+            count: i - currentStartIndex,
+          });
+          currentSubjectName = questions[i].subject;
+          currentStartIndex = i;
+        }
+      }
+      sections.push({
+        name: currentSubjectName,
+        startIndex: currentStartIndex,
+        endIndex: questions.length - 1,
+        count: questions.length - currentStartIndex,
+      });
+      setSubjectSections(sections);
+    } else {
+      setSubjectSections([]);
+    }
+  }, [questions]);
+
+  useEffect(() => {
     return () => stopTimer(); 
   }, [stopTimer]);
 
@@ -71,10 +113,48 @@ export default function TestInProgress({
     setUserAnswers((prev) => ({ ...prev, [questionId]: answer }));
   };
 
-  const goToNextQuestion = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+  const advanceQuestionLogic = (markCurrentFirst: boolean) => {
+    if (!currentQuestion) return;
+
+    if (markCurrentFirst) {
+      setMarkedForReview(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(currentQuestion.id)) newSet.delete(currentQuestion.id);
+        else newSet.add(currentQuestion.id);
+        return newSet;
+      });
     }
+
+    if (currentQuestionIndex >= questions.length - 1) {
+      return; // Already at the last question of the test
+    }
+
+    // Only apply section-based advancement if there are multiple sections (typical for mock tests)
+    if (subjectSections.length > 1) {
+        const currentSection = subjectSections.find(
+        s => currentQuestionIndex >= s.startIndex && currentQuestionIndex <= s.endIndex
+      );
+
+      if (currentSection && currentQuestionIndex === currentSection.endIndex) {
+        // Last question of the current section
+        const currentSectionGlobalIndex = subjectSections.findIndex(s => s.startIndex === currentSection.startIndex);
+        if (currentSectionGlobalIndex < subjectSections.length - 1) {
+          // There is a next section
+          setCurrentQuestionIndex(subjectSections[currentSectionGlobalIndex + 1].startIndex);
+          return;
+        }
+      }
+    }
+    // Default: just go to the next question if not advancing to a new section or if it's a single-section test
+    setCurrentQuestionIndex(currentQuestionIndex + 1);
+  };
+  
+  const handleSaveAndNext = () => {
+    advanceQuestionLogic(false);
+  };
+
+  const handleMarkForReviewAndNext = () => {
+    advanceQuestionLogic(true);
   };
 
   const goToPreviousQuestion = () => {
@@ -91,22 +171,6 @@ export default function TestInProgress({
     stopTimer();
     const elapsedSeconds = (durationMinutes * 60) - totalSecondsLeft;
     onTestSubmit(userAnswers, originalQuizId, elapsedSeconds);
-  };
-
-  const handleMarkForReviewAndNext = () => {
-    if(!currentQuestion) return;
-    setMarkedForReview(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(currentQuestion.id)) { 
-        newSet.delete(currentQuestion.id);
-      } else {
-        newSet.add(currentQuestion.id);
-      }
-      return newSet;
-    });
-    if (currentQuestionIndex < questions.length - 1) {
-      goToNextQuestion();
-    }
   };
 
   const handleClearResponse = () => {
@@ -176,7 +240,9 @@ export default function TestInProgress({
         
         <TestInProgressSidebar
           questions={questions}
+          subjectSections={subjectSections}
           currentQuestionId={currentQuestion.id}
+          currentQuestionIndex={currentQuestionIndex}
           userAnswers={userAnswers}
           markedForReview={markedForReview}
           visitedQuestions={visitedQuestions}
@@ -199,7 +265,7 @@ export default function TestInProgress({
             </Button>
             
             {currentQuestionIndex < questions.length - 1 ? (
-              <Button onClick={goToNextQuestion} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Button onClick={handleSaveAndNext} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 Save & Next <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
