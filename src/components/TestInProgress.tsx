@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { AppQuestion, PracticeTestConfig } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +30,26 @@ interface SubjectSection {
   count: number;
 }
 
+export type QuestionStatus = 'answered' | 'notAnswered' | 'markedForReview' | 'markedAndAnswered' | 'notVisited';
+
+const getQuestionStatusForSummary = (
+  questionId: string,
+  userAnswers: Record<string, string>,
+  markedForReview: Set<string>,
+  visitedQuestions: Set<string>
+): QuestionStatus => {
+  const isAnswered = !!userAnswers[questionId] && userAnswers[questionId] !== '';
+  const isMarked = markedForReview.has(questionId);
+  const isVisited = visitedQuestions.has(questionId);
+
+  if (isAnswered && isMarked) return 'markedAndAnswered';
+  if (isAnswered) return 'answered';
+  if (isMarked) return 'markedForReview';
+  if (isVisited) return 'notAnswered'; // Visited but not answered and not marked
+  return 'notVisited'; // Not visited at all
+};
+
+
 export default function TestInProgress({ 
   questions, 
   durationMinutes, 
@@ -47,7 +67,7 @@ export default function TestInProgress({
   const handleTimerEndCallback = useCallback(() => {
     const timeTaken = (durationMinutes * 60) - totalSecondsLeft; 
     onTestSubmit(userAnswers, originalQuizId, timeTaken);
-  }, [onTestSubmit, userAnswers, originalQuizId, durationMinutes]);
+  }, [onTestSubmit, userAnswers, originalQuizId, durationMinutes, totalSecondsLeft]); // Added totalSecondsLeft to dependency array
 
   const { minutes, seconds, isActive, startTimer, stopTimer, totalSecondsLeft } = useTestTimer(durationMinutes, handleTimerEndCallback);
 
@@ -109,6 +129,21 @@ export default function TestInProgress({
 
   const currentQuestion = questions[currentQuestionIndex];
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<QuestionStatus, number> = {
+      answered: 0,
+      notAnswered: 0,
+      markedForReview: 0,
+      markedAndAnswered: 0,
+      notVisited: 0,
+    };
+    questions.forEach((q) => {
+      const status = getQuestionStatusForSummary(q.id, userAnswers, markedForReview, visitedQuestions);
+      counts[status]++;
+    });
+    return counts;
+  }, [questions, userAnswers, markedForReview, visitedQuestions]);
+
   const handleAnswerChange = (questionId: string, answer: string) => {
     setUserAnswers((prev) => ({ ...prev, [questionId]: answer }));
   };
@@ -126,26 +161,22 @@ export default function TestInProgress({
     }
 
     if (currentQuestionIndex >= questions.length - 1) {
-      return; // Already at the last question of the test
+      return; 
     }
 
-    // Only apply section-based advancement if there are multiple sections (typical for mock tests)
     if (subjectSections.length > 1) {
         const currentSection = subjectSections.find(
         s => currentQuestionIndex >= s.startIndex && currentQuestionIndex <= s.endIndex
       );
 
       if (currentSection && currentQuestionIndex === currentSection.endIndex) {
-        // Last question of the current section
         const currentSectionGlobalIndex = subjectSections.findIndex(s => s.startIndex === currentSection.startIndex);
         if (currentSectionGlobalIndex < subjectSections.length - 1) {
-          // There is a next section
           setCurrentQuestionIndex(subjectSections[currentSectionGlobalIndex + 1].startIndex);
           return;
         }
       }
     }
-    // Default: just go to the next question if not advancing to a new section or if it's a single-section test
     setCurrentQuestionIndex(currentQuestionIndex + 1);
   };
   
@@ -195,6 +226,7 @@ export default function TestInProgress({
         minutes={minutes}
         seconds={seconds}
         isActive={isActive}
+        statusCounts={statusCounts}
       />
       <div className="flex flex-1 overflow-hidden">
         <ScrollArea className="flex-1 p-4 md:p-6">
@@ -278,3 +310,5 @@ export default function TestInProgress({
     </div>
   );
 }
+
+    

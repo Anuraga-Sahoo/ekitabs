@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { UserCircle, Circle, CheckCircle, XCircle, AlertCircle, EyeOff } from 'lucide-react';
+import { UserCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'; // Removed useMemo as statusCounts is no longer here
 
 export type QuestionStatus = 'answered' | 'notAnswered' | 'markedForReview' | 'markedAndAnswered' | 'notVisited';
 
@@ -52,21 +52,18 @@ export default function TestInProgressSidebar({
   const [activeAccordionItem, setActiveAccordionItem] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    // Automatically open the accordion section for the current question
     const currentSection = subjectSections.find(
       section => currentQuestionIndex >= section.startIndex && currentQuestionIndex <= section.endIndex
     );
     if (currentSection) {
       setActiveAccordionItem(currentSection.name);
     } else if (subjectSections.length > 0) {
-      // Fallback to the first section if current question is not in any known section (should not happen)
-      // or if currentQuestionIndex is 0 and first section exists.
       setActiveAccordionItem(subjectSections[0].name);
     }
   }, [currentQuestionIndex, subjectSections]);
 
   const getQuestionState = (questionId: string, questionIndex: number): QuestionPaletteState => {
-    const isCurrent = questionIndex === currentQuestionIndex; // Use index for current check
+    const isCurrent = questionIndex === currentQuestionIndex; 
     const isAnswered = !!userAnswers[questionId] && userAnswers[questionId] !== '';
     const isMarked = markedForReview.has(questionId);
     const isVisited = visitedQuestions.has(questionId);
@@ -81,29 +78,6 @@ export default function TestInProgressSidebar({
     return { status, isCurrent };
   };
 
-  const statusCounts = useMemo(() => {
-    const counts: Record<QuestionStatus, number> = {
-      answered: 0,
-      notAnswered: 0,
-      markedForReview: 0,
-      markedAndAnswered: 0,
-      notVisited: 0,
-    };
-    questions.forEach((q, index) => { // Pass index here
-      const { status } = getQuestionState(q.id, index); // Pass index here
-      counts[status]++;
-    });
-    return counts;
-  }, [questions, userAnswers, markedForReview, visitedQuestions, currentQuestionIndex]); // Add currentQuestionIndex dependency
-
-  const legendItems: { label: string; status: QuestionStatus; color: string; icon?: React.ReactNode }[] = [
-    { label: 'Answered', status: 'answered', color: 'bg-green-500', icon: <CheckCircle className="h-3 w-3 text-white" /> },
-    { label: 'Not Answered', status: 'notAnswered', color: 'bg-red-500', icon: <XCircle className="h-3 w-3 text-white" /> },
-    { label: 'Marked', status: 'markedForReview', color: 'bg-purple-500', icon: <AlertCircle className="h-3 w-3 text-white" /> },
-    { label: 'Marked & Answered', status: 'markedAndAnswered', color: 'bg-purple-500', icon: <div className="relative"><AlertCircle className="h-3 w-3 text-white" /><CheckCircle className="h-2 w-2 text-green-300 absolute -bottom-0.5 -right-0.5" /></div> },
-    { label: 'Not Visited', status: 'notVisited', color: 'bg-slate-300', icon: <EyeOff className="h-3 w-3 text-slate-700" /> },
-  ];
-
   return (
     <div className="w-full md:w-1/3 lg:w-1/4 xl:w-1/5 h-full flex flex-col border-l bg-card text-card-foreground">
       <CardHeader className="p-3 border-b">
@@ -117,19 +91,7 @@ export default function TestInProgressSidebar({
       </CardHeader>
 
       <CardContent className="p-3 flex-grow overflow-hidden flex flex-col">
-        <div className="mb-2 flex-shrink-0">
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Question Status</h3>
-          <div className="grid grid-cols-1 gap-y-0.5 text-xs">
-            {legendItems.map(item => (
-              <div key={item.label} className="flex items-center gap-1.5">
-                <span className={cn("h-3.5 w-3.5 rounded-full flex items-center justify-center shrink-0", item.color)}>
-                  {item.icon || <Circle className="h-2 w-2 fill-current" />}
-                </span>
-                <span>{item.label}: {statusCounts[item.status]}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* Question Status Legend Removed From Here */}
         
         <div className="flex flex-col flex-grow mt-2 overflow-hidden">
           <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-1 flex-shrink-0">Question Palette</h3>
@@ -151,7 +113,7 @@ export default function TestInProgressSidebar({
                       {questions.slice(section.startIndex, section.endIndex + 1).map((q, localIndex) => {
                         const globalIndex = section.startIndex + localIndex;
                         const { status, isCurrent } = getQuestionState(q.id, globalIndex);
-                        let buttonClass = "bg-slate-200 hover:bg-slate-300 text-slate-700"; // Not Visited
+                        let buttonClass = "bg-slate-200 hover:bg-slate-300 text-slate-700"; 
                         if (status === 'answered') buttonClass = "bg-green-500 hover:bg-green-600 text-white";
                         else if (status === 'notAnswered') buttonClass = "bg-red-500 hover:bg-red-600 text-white"; 
                         else if (status === 'markedForReview') buttonClass = "bg-purple-500 hover:bg-purple-600 text-white"; 
@@ -179,7 +141,6 @@ export default function TestInProgressSidebar({
                 </AccordionItem>
               ))}
                {subjectSections.length === 0 && questions.length > 0 && (
-                 // Fallback for single section tests or if sections somehow not processed
                  <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-4 lg:grid-cols-5 gap-1.5 p-2">
                     {questions.map((q, index) => {
                         const { status, isCurrent } = getQuestionState(q.id, index);
@@ -218,3 +179,4 @@ export default function TestInProgressSidebar({
   );
 }
 
+    
