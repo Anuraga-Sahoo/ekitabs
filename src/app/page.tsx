@@ -1,7 +1,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { PencilRuler, BookOpenText } from 'lucide-react';
+import { Sparkles } from 'lucide-react'; // Changed icon
 
 const PlayIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-muted-foreground">
@@ -22,26 +22,15 @@ export default function Home() {
           <span>Improve</span> <PlayIcon />
           <span>Succeed</span>
         </div>
-        <div className="mt-12 flex flex-col sm:flex-row justify-center items-center gap-6">
+        <div className="mt-12 flex justify-center">
           <Button
             size="lg"
             className="bg-[hsl(var(--brand-green))] hover:bg-[hsl(var(--brand-green))]/90 text-white font-semibold px-10 py-7 text-lg w-full sm:w-auto"
             asChild
           >
-            <Link href="/mock-test">
-              <PencilRuler className="mr-3 h-6 w-6" />
-              Take a Mock Test
-            </Link>
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="border-[hsl(var(--brand-green))] text-[hsl(var(--brand-green))] hover:bg-[hsl(var(--brand-green))]/10 hover:text-[hsl(var(--brand-green))] font-semibold px-10 py-7 text-lg w-full sm:w-auto"
-            asChild
-          >
-            <Link href="/practice-test">
-              <BookOpenText className="mr-3 h-6 w-6" />
-              Create a Practice Test
+            <Link href="/ai-tests">
+              <Sparkles className="mr-3 h-6 w-6" />
+              AI Powered Tests
             </Link>
           </Button>
         </div>
