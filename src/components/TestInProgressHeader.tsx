@@ -54,16 +54,16 @@ export default function TestInProgressHeader({
   const testTitle = testType === 'mock' ? 'Mock Test' : `Practice: ${subject} - ${chapter}`;
   
   return (
-    <div className="flex items-center justify-between p-3 border-b bg-card sticky top-0 z-10">
+    <div className="flex items-center justify-between p-2 border-b bg-card sticky top-0 z-10"> {/* Reduced padding from p-3 to p-2 */}
       {/* Left Group: Title and Legend */}
-      <div className="flex items-center space-x-4">
-        <h1 className="text-base sm:text-lg font-semibold text-primary capitalize truncate" title={testTitle}>{testTitle}</h1>
+      <div className="flex items-center space-x-3"> {/* Reduced space-x-4 to space-x-3 */}
+        <h1 className="text-sm sm:text-base font-semibold text-primary capitalize truncate" title={testTitle}>{testTitle}</h1> {/* Reduced font size */}
         
         <TooltipProvider delayDuration={100}>
-          <div className="hidden md:flex items-center space-x-3">
+          <div className="hidden md:flex items-center space-x-2"> {/* Reduced space-x-3 to space-x-2 */}
             {legendConfig.map(item => {
               const count = statusCounts[item.key];
-              if (count === 0 && item.key !== 'notVisited') return null; // Optionally hide if count is 0, except for 'Not Visited' if desired
+              if (count === 0 && item.key !== 'notVisited') return null;
 
               const IconComponent = item.icon;
               return (
@@ -72,11 +72,11 @@ export default function TestInProgressHeader({
                     <div className="flex items-center space-x-1 cursor-default">
                       {item.showCombinedIcon && count > 0 ? (
                         <div className="relative">
-                           <IconComponent className={cn("h-4 w-4", item.iconClass)} />
-                           <CheckCircle className={cn("h-2.5 w-2.5 absolute -bottom-0.5 -right-0.5", item.combinedIconClass)} />
+                           <IconComponent className={cn("h-3.5 w-3.5", item.iconClass)} /> {/* Ensured icon size is small */}
+                           <CheckCircle className={cn("h-2 w-2 absolute -bottom-0.5 -right-0.5", item.combinedIconClass)} />
                         </div>
                       ) : (
-                        <IconComponent className={cn("h-4 w-4", item.iconClass)} />
+                        <IconComponent className={cn("h-3.5 w-3.5", item.iconClass)} /> 
                       )}
                       <span className="text-xs font-medium text-muted-foreground">{count}</span>
                     </div>
@@ -96,5 +96,3 @@ export default function TestInProgressHeader({
     </div>
   );
 }
-
-    

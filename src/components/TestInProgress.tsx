@@ -64,14 +64,12 @@ export default function TestInProgress({
   const [visitedQuestions, setVisitedQuestions] = useState<Set<string>>(new Set());
   const [subjectSections, setSubjectSections] = useState<SubjectSection[]>([]);
   
-  // Define the callback for when the timer naturally expires FIRST.
   const onTimerExpiredSubmit = useCallback(() => {
-    // When the timer expires naturally, the time taken is the full duration.
     const timeTaken = durationMinutes * 60;
     onTestSubmit(userAnswers, originalQuizId, timeTaken);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onTestSubmit, userAnswers, originalQuizId, durationMinutes]);
 
-  // NOW initialize useTestTimer, passing the defined callback.
   const { minutes, seconds, isActive, startTimer, stopTimer, totalSecondsLeft } = useTestTimer(durationMinutes, onTimerExpiredSubmit);
 
   useEffect(() => {
@@ -201,7 +199,6 @@ export default function TestInProgress({
     setCurrentQuestionIndex(index);
   };
 
-  // This is for manual submission by the user
   const handleSubmitTest = () => {
     stopTimer();
     const elapsedSeconds = (durationMinutes * 60) - totalSecondsLeft;
@@ -222,7 +219,7 @@ export default function TestInProgress({
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-var(--header-height,80px))]">
+    <div className="flex flex-col h-[calc(100vh-var(--header-height,60px))]"> {/* Adjusted header height estimate */}
       <TestInProgressHeader 
         testType={testType}
         subject={practiceTestConfig?.subject}
@@ -261,6 +258,34 @@ export default function TestInProgress({
               </CardContent>
             </Card>
 
+            {/* Action buttons moved here from footer */}
+            <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-3 py-4">
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={goToPreviousQuestion} disabled={currentQuestionIndex === 0}>
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Previous
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2 justify-end">
+                <Button variant="outline" onClick={handleClearResponse}>
+                  <X className="mr-2 h-4 w-4" /> Clear Response
+                </Button>
+                <Button variant="outline" onClick={handleMarkForReviewAndNext} title={markedForReview.has(currentQuestion.id) ? "Unmark for Review & Next" : "Mark for Review & Next"}>
+                  <Flag className="mr-2 h-4 w-4" /> {markedForReview.has(currentQuestion.id) ? "Unmark & Next" : "Mark & Next"}
+                </Button>
+                
+                {currentQuestionIndex < questions.length - 1 ? (
+                  <Button onClick={handleSaveAndNext} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                    Save & Next <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button onClick={handleSubmitTest} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                    <CheckCircle className="mr-2 h-4 w-4" /> Submit Test
+                  </Button>
+                )}
+              </div>
+            </div>
+
+
             {totalSecondsLeft <= 60 && totalSecondsLeft > 0 && isActive && (
               <p className="text-center text-destructive font-semibold">
                 {totalSecondsLeft} seconds remaining!
@@ -286,31 +311,7 @@ export default function TestInProgress({
           onSubmitTest={handleSubmitTest}
         />
       </div>
-      <div className="flex items-center justify-between p-3 border-t bg-card sticky bottom-0 z-10">
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleMarkForReviewAndNext} title={markedForReview.has(currentQuestion.id) ? "Unmark for Review & Next" : "Mark for Review & Next"}>
-              <Flag className="mr-2 h-4 w-4" /> {markedForReview.has(currentQuestion.id) ? "Unmark & Next" : "Mark & Next"}
-            </Button>
-            <Button variant="outline" onClick={handleClearResponse}>
-              <X className="mr-2 h-4 w-4" /> Clear Response
-            </Button>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={goToPreviousQuestion} disabled={currentQuestionIndex === 0}>
-              <ArrowLeft className="mr-2 h-4 w-4" /> Previous
-            </Button>
-            
-            {currentQuestionIndex < questions.length - 1 ? (
-              <Button onClick={handleSaveAndNext} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                Save & Next <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            ) : (
-              <Button onClick={handleSubmitTest} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                <CheckCircle className="mr-2 h-4 w-4" /> Submit Test
-              </Button>
-            )}
-          </div>
-        </div>
+      {/* Footer removed */}
     </div>
   );
 }
