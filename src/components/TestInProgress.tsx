@@ -64,12 +64,13 @@ export default function TestInProgress({
   const [visitedQuestions, setVisitedQuestions] = useState<Set<string>>(new Set());
   const [subjectSections, setSubjectSections] = useState<SubjectSection[]>([]);
   
+  // Moved useTestTimer hook initialization before handleTimerEndCallback
+  const { minutes, seconds, isActive, startTimer, stopTimer, totalSecondsLeft } = useTestTimer(durationMinutes, handleTimerEndCallback);
+
   const handleTimerEndCallback = useCallback(() => {
     const timeTaken = (durationMinutes * 60) - totalSecondsLeft; 
     onTestSubmit(userAnswers, originalQuizId, timeTaken);
-  }, [onTestSubmit, userAnswers, originalQuizId, durationMinutes, totalSecondsLeft]); // Added totalSecondsLeft to dependency array
-
-  const { minutes, seconds, isActive, startTimer, stopTimer, totalSecondsLeft } = useTestTimer(durationMinutes, handleTimerEndCallback);
+  }, [onTestSubmit, userAnswers, originalQuizId, durationMinutes, totalSecondsLeft]);
 
   useEffect(() => {
     startTimer();
