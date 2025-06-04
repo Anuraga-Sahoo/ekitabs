@@ -8,7 +8,7 @@ import TestInProgress from '@/components/TestInProgress';
 import TestResultsDisplay from '@/components/TestResultsDisplay';
 import { generatePracticeQuestions, type GeneratePracticeQuestionsOutput } from '@/ai/flows/generate-practice-questions';
 import type { AppQuestion, PracticeTestConfig, TestResultItem, TestScore, StoredQuiz } from '@/types';
-import { saveTestResult } from '@/lib/localStorageHelper';
+import { saveTestResult } from '@/lib/testHistoryStorage'; // Updated import
 import { saveGeneratedQuiz, getGeneratedQuiz } from '@/lib/quizStorage';
 import { generateQuizId } from '@/lib/quizUtils';
 import { useToast } from '@/hooks/use-toast';
@@ -76,6 +76,8 @@ export default function PracticeTestPage() {
       if (error instanceof Error) {
         if (error.message.includes("503") || error.message.toLowerCase().includes("model is overloaded")) {
           description = "The AI model is currently overloaded. Please try again in a few moments.";
+        } else if (error.message.toLowerCase().includes("failed to save quiz to database")) {
+          description = "Could not save the generated test to the database. Please check your connection and try again.";
         } else {
           description = `Details: ${error.message}`;
         }
@@ -107,7 +109,12 @@ export default function PracticeTestPage() {
       }
     } catch (error) {
        console.error("Error retaking practice test:", error);
-       const description = error instanceof Error ? `Details: ${error.message}` : "Failed to load the test for retake.";
+       let description = "Failed to load the test for retake.";
+       if (error instanceof Error && error.message.toLowerCase().includes("failed to retrieve quiz from database")){
+           description = "Could not load the test questions from the database. Please try again.";
+       } else if (error instanceof Error) {
+           description = `Details: ${error.message}`;
+       }
        toast({ title: "Error Retaking Test", description: description, variant: "destructive" });
        router.replace('/practice-test');
        setTestState('setup');
@@ -122,7 +129,7 @@ export default function PracticeTestPage() {
   }, [searchParams, startRetakeTest, testState]);
 
 
-  const handleSubmitTest = (userAnswers: Record<string, string>, originalQuizId: string, timeTakenSeconds: number) => {
+  const handleSubmitTest = async (userAnswers: Record<string, string>, originalQuizId: string, timeTakenSeconds: number) => {
     if (!currentTestConfig || !currentOriginalQuizId) {
         toast({ title: "Error Submitting Test", description: "Test configuration or ID is missing. Cannot submit.", variant: "destructive" });
         return;
@@ -153,7 +160,7 @@ export default function PracticeTestPage() {
 
     const score: TestScore = { correct, incorrect, unanswered, totalScore, maxScore };
     const resultData: TestResultItem = {
-      testAttemptId: `practice-attempt-${Date.now()}`,
+      testAttemptId: `practice-attempt-${Date.now()}-${Math.random().toString(36).substring(2,7)}`, // More unique ID
       originalQuizId: currentOriginalQuizId, 
       testType: 'practice',
       testTitle: testTitle,
@@ -164,10 +171,17 @@ export default function PracticeTestPage() {
       timeTakenSeconds,
     };
     
-    setTestResult(resultData);
-    saveTestResult(resultData);
-    setTestState('completed');
-    toast({ title: "Practice Test Submitted!", description: "Your results are ready." });
+    try {
+      await saveTestResult(resultData);
+      setTestResult(resultData);
+      setTestState('completed');
+      toast({ title: "Practice Test Submitted!", description: "Your results are ready." });
+    } catch (error) {
+       console.error("Error saving practice test result:", error);
+       toast({ title: "Error Saving Result", description: "Could not save your test result to the database. Your results are available now but might not be saved in history.", variant: "destructive" });
+       setTestResult(resultData);
+       setTestState('completed');
+    }
   };
 
   const handleNavigateToSetup = () => {
@@ -208,4 +222,3 @@ export default function PracticeTestPage() {
     </div>
   );
 }
-

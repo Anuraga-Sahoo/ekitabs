@@ -8,7 +8,7 @@ import TestInProgress from '@/components/TestInProgress';
 import TestResultsDisplay from '@/components/TestResultsDisplay';
 import { generateMockTest, type GenerateMockTestOutput } from '@/ai/flows/generate-mock-test';
 import type { AppQuestion, TestResultItem, TestScore, StoredQuiz } from '@/types';
-import { saveTestResult } from '@/lib/localStorageHelper';
+import { saveTestResult } from '@/lib/testHistoryStorage'; // Updated import
 import { saveGeneratedQuiz, getGeneratedQuiz } from '@/lib/quizStorage';
 import { generateQuizId } from '@/lib/quizUtils';
 import { useToast } from '@/hooks/use-toast';
@@ -69,6 +69,8 @@ export default function MockTestPage() {
       if (error instanceof Error) {
         if (error.message.includes("503") || error.message.toLowerCase().includes("model is overloaded")) {
           description = "The AI model is currently overloaded. Please try again in a few moments.";
+        } else if (error.message.toLowerCase().includes("failed to save quiz to database")) {
+          description = "Could not save the generated test to the database. Please check your connection and try again.";
         } else {
           description = `Details: ${error.message}`;
         }
@@ -94,7 +96,13 @@ export default function MockTestPage() {
       }
     } catch (error) {
       console.error("Error retaking mock test:", error);
-      toast({ title: "Error Retaking Test", description: "An error occurred while trying to retake the test.", variant: "destructive" });
+      let description = "An error occurred while trying to retake the test.";
+       if (error instanceof Error && error.message.toLowerCase().includes("failed to retrieve quiz from database")){
+           description = "Could not load the test questions from the database. Please try again.";
+       } else if (error instanceof Error) {
+           description = `Details: ${error.message}`;
+       }
+      toast({ title: "Error Retaking Test", description, variant: "destructive" });
       router.replace('/mock-test');
       setTestState('idle');
     }
@@ -108,7 +116,7 @@ export default function MockTestPage() {
   }, [searchParams, startRetakeTest, testState]);
 
 
-  const handleSubmitTest = (userAnswers: Record<string, string>, originalQuizId: string, timeTakenSeconds: number) => {
+  const handleSubmitTest = async (userAnswers: Record<string, string>, originalQuizId: string, timeTakenSeconds: number) => {
     if (!currentOriginalQuizId) {
       toast({ title: "Error", description: "Cannot submit test without an original quiz ID.", variant: "destructive" });
       return;
@@ -138,7 +146,7 @@ export default function MockTestPage() {
 
     const score: TestScore = { correct, incorrect, unanswered, totalScore, maxScore };
     const resultData: TestResultItem = {
-      testAttemptId: `mock-attempt-${Date.now()}`,
+      testAttemptId: `mock-attempt-${Date.now()}-${Math.random().toString(36).substring(2,7)}`, // More unique ID
       originalQuizId: currentOriginalQuizId, 
       testType: 'mock',
       testTitle: MOCK_TEST_TITLE,
@@ -148,10 +156,18 @@ export default function MockTestPage() {
       timeTakenSeconds,
     };
     
-    setTestResult(resultData);
-    saveTestResult(resultData); 
-    setTestState('completed');
-    toast({ title: "Test Submitted!", description: "Your mock test results are ready." });
+    try {
+      await saveTestResult(resultData); 
+      setTestResult(resultData);
+      setTestState('completed');
+      toast({ title: "Test Submitted!", description: "Your mock test results are ready." });
+    } catch (error) {
+      console.error("Error saving mock test result:", error);
+      toast({ title: "Error Saving Result", description: "Could not save your test result to the database. Your results are available now but might not be saved in history.", variant: "destructive" });
+      // Still show results even if saving fails
+      setTestResult(resultData);
+      setTestState('completed');
+    }
   };
 
   if (testState === 'loading') {
