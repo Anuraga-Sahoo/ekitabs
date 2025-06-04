@@ -62,7 +62,7 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="mt-auto pt-4 border-t border-border/50">
-                  <Link href="/ai-tests" className="font-medium text-sm text-primary hover:text-primary/80 flex items-center">
+                  <Link href="/previous-year-tests" className="font-medium text-sm text-primary hover:text-primary/80 flex items-center">
                     Explore Category <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </div>
