@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -54,25 +55,42 @@ export default function TestimonialCarousel({ testimonials, interval = 7000 }: T
         `}
       >
         <Card
-          className="w-full h-full flex flex-col justify-center items-center text-center shadow-xl rounded-lg p-6 md:p-8 bg-card"
+          className="w-full h-full flex flex-col justify-between text-left shadow-xl rounded-lg p-6 md:p-8 bg-card"
         >
-          <CardContent className="p-0">
-            <Avatar className="w-20 h-20 mx-auto mb-4 border-2 border-primary shadow-md">
-              <AvatarImage 
-                src={currentTestimonial.avatar} 
-                alt={currentTestimonial.name} 
-                data-ai-hint={currentTestimonial.dataAiHint} 
-              />
-              <AvatarFallback>{currentTestimonial.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <p className="text-md md:text-lg font-medium text-foreground/90 italic mb-4 px-4 line-clamp-4 md:line-clamp-3">
-              "{currentTestimonial.feedback}"
-            </p>
-            <h4 className="text-md font-semibold text-primary">{currentTestimonial.name}</h4>
-            <p className="text-sm text-muted-foreground">{currentTestimonial.role}</p>
-          </CardContent>
+          <div> {/* Feedback text container */}
+            <div className="relative">
+              {/* Large decorative quote character */}
+              <span 
+                aria-hidden="true" 
+                className="absolute -top-5 -left-4 font-serif text-7xl text-gray-200 dark:text-gray-600 opacity-70 select-none pointer-events-none"
+              >
+                “
+              </span>
+              <p className="text-sm text-gray-600 dark:text-gray-400 pt-4 pl-3 sm:pl-4 leading-relaxed line-clamp-5"> 
+                {currentTestimonial.feedback}
+              </p>
+            </div>
+          </div>
+          
+          <div className="mt-4 sm:mt-6"> {/* User info, margin-top to give space */}
+            <div className="flex items-center space-x-3">
+              <Avatar className="w-10 h-10">
+                <AvatarImage 
+                  src={currentTestimonial.avatar} 
+                  alt={currentTestimonial.name} 
+                  data-ai-hint={currentTestimonial.dataAiHint} 
+                />
+                <AvatarFallback>{currentTestimonial.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div>
+                <h4 className="text-sm font-semibold text-foreground">{currentTestimonial.name}</h4>
+                <p className="text-xs text-muted-foreground">{currentTestimonial.role}</p>
+              </div>
+            </div>
+          </div>
         </Card>
       </div>
     </div>
   );
 }
+
