@@ -2,12 +2,12 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { getTestHistory, clearTestHistory, deleteTestResult } from '@/lib/testHistoryStorage'; // Updated import
+import { getTestHistory, clearTestHistory, deleteTestResult } from '@/lib/testHistoryStorage';
 import type { TestResultItem } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Download, Trash2, Inbox, RotateCcw, Loader2 } from 'lucide-react'; // Added Loader2
+import { Download, Trash2, Inbox, RotateCcw, Loader2 } from 'lucide-react';
 import { generateTestPdf } from '@/lib/pdfGenerator';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -28,7 +28,7 @@ export default function TestHistoryPage() {
   const [history, setHistory] = useState<TestResultItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isClearing, setIsClearing] = useState(false);
-  const [isDeleting, setIsDeleting] = useState<string | null>(null); // Store ID of item being deleted
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -45,7 +45,7 @@ export default function TestHistoryPage() {
           description: "Could not load test history from the database. Please try again later.",
           variant: "destructive",
         });
-        setHistory([]); // Set to empty on error
+        setHistory([]);
       } finally {
         setIsLoading(false);
       }
@@ -90,11 +90,11 @@ export default function TestHistoryPage() {
   };
 
   const handleRetakeTest = (item: TestResultItem) => {
-    if (item.originalQuizId) {
+    if (item.originalQuizId && item.testAttemptId) {
       const path = item.testType === 'mock' ? '/mock-test' : '/practice-test';
-      router.push(`${path}?retakeQuizId=${item.originalQuizId}`);
+      router.push(`${path}?retakeQuizId=${item.originalQuizId}&attemptToUpdateId=${item.testAttemptId}`);
     } else {
-      toast({ title: "Error", description: "Could not find original test data to retake.", variant: "destructive" });
+      toast({ title: "Error", description: "Could not find original test data or attempt ID to retake.", variant: "destructive" });
     }
   };
 

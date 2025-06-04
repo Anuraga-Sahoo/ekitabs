@@ -8,11 +8,11 @@ import TestInProgress from '@/components/TestInProgress';
 import TestResultsDisplay from '@/components/TestResultsDisplay';
 import { generatePracticeQuestions, type GeneratePracticeQuestionsOutput } from '@/ai/flows/generate-practice-questions';
 import type { AppQuestion, PracticeTestConfig, TestResultItem, TestScore, StoredQuiz } from '@/types';
-import { saveTestResult } from '@/lib/testHistoryStorage'; // Updated import
+import { saveTestResult, updateTestResult } from '@/lib/testHistoryStorage';
 import { saveGeneratedQuiz, getGeneratedQuiz } from '@/lib/quizStorage';
 import { generateQuizId } from '@/lib/quizUtils';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 const PRACTICE_TEST_MINUTES_PER_QUESTION = 2;
 
@@ -21,12 +21,14 @@ export default function PracticeTestPage() {
   const [questions, setQuestions] = useState<AppQuestion[]>([]);
   const [currentTestConfig, setCurrentTestConfig] = useState<PracticeTestConfig | null>(null);
   const [currentOriginalQuizId, setCurrentOriginalQuizId] = useState<string | null>(null);
+  const [currentAttemptToUpdateId, setCurrentAttemptToUpdateId] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<TestResultItem | null>(null);
   const [durationMinutes, setDurationMinutes] = useState(0);
 
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   const getPracticeTestTitle = (config: PracticeTestConfig): string => {
     return `Practice: ${config.subject} - ${config.chapter} (${config.complexityLevel}, ${config.numberOfQuestions}Q)`;
@@ -45,6 +47,7 @@ export default function PracticeTestPage() {
   const handleSetupSubmit = useCallback(async (config: PracticeTestConfig) => {
     setTestState('loading');
     setCurrentTestConfig(config);
+    setCurrentAttemptToUpdateId(null); // Ensure it's a new test, not an update
     try {
       const aiOutput = await generatePracticeQuestions(config);
       if (aiOutput && aiOutput.generatedMcqs.length > 0) {
@@ -91,8 +94,13 @@ export default function PracticeTestPage() {
     }
   }, [toast]);
   
-  const startRetakeTest = useCallback(async (quizId: string) => {
+  const startRetakeTest = useCallback(async (quizId: string, attemptIdToUpdate?: string | null) => {
     setTestState('loading');
+    if (attemptIdToUpdate) {
+      setCurrentAttemptToUpdateId(attemptIdToUpdate);
+    } else {
+      setCurrentAttemptToUpdateId(null);
+    }
     try {
       const storedQuiz = await getGeneratedQuiz(quizId);
       if (storedQuiz && storedQuiz.testType === 'practice' && storedQuiz.config) {
@@ -123,17 +131,19 @@ export default function PracticeTestPage() {
 
   useEffect(() => {
     const retakeQuizId = searchParams.get('retakeQuizId');
+    const attemptIdToUpdate = searchParams.get('attemptToUpdateId');
     if (retakeQuizId && testState === 'setup') { 
-        startRetakeTest(retakeQuizId);
+        startRetakeTest(retakeQuizId, attemptIdToUpdate);
     }
   }, [searchParams, startRetakeTest, testState]);
 
 
-  const handleSubmitTest = async (userAnswers: Record<string, string>, originalQuizId: string, timeTakenSeconds: number) => {
+  const handleSubmitTest = async (userAnswers: Record<string, string>, originalQuizIdFromComponent: string, timeTakenSeconds: number) => {
     if (!currentTestConfig || !currentOriginalQuizId) {
         toast({ title: "Error Submitting Test", description: "Test configuration or ID is missing. Cannot submit.", variant: "destructive" });
         return;
     }
+    const isUpdate = !!currentAttemptToUpdateId;
 
     const answeredQuestions = questions.map(q => ({
       ...q,
@@ -160,7 +170,7 @@ export default function PracticeTestPage() {
 
     const score: TestScore = { correct, incorrect, unanswered, totalScore, maxScore };
     const resultData: TestResultItem = {
-      testAttemptId: `practice-attempt-${Date.now()}-${Math.random().toString(36).substring(2,7)}`, // More unique ID
+      testAttemptId: isUpdate ? currentAttemptToUpdateId! : `practice-attempt-${Date.now()}-${Math.random().toString(36).substring(2,7)}`,
       originalQuizId: currentOriginalQuizId, 
       testType: 'practice',
       testTitle: testTitle,
@@ -172,15 +182,48 @@ export default function PracticeTestPage() {
     };
     
     try {
-      await saveTestResult(resultData);
+      if (isUpdate) {
+        await updateTestResult(currentAttemptToUpdateId!, resultData);
+        toast({ title: "Test Retake Submitted!", description: "Your practice test history has been updated." });
+      } else {
+        await saveTestResult(resultData);
+        toast({ title: "Practice Test Submitted!", description: "Your results are ready." });
+      }
       setTestResult(resultData);
       setTestState('completed');
-      toast({ title: "Practice Test Submitted!", description: "Your results are ready." });
+
+      if (isUpdate) {
+        setCurrentAttemptToUpdateId(null);
+        const newSearchParams = new URLSearchParams(searchParams.toString());
+        newSearchParams.delete('attemptToUpdateId');
+        router.replace(`${pathname}?${newSearchParams.toString()}`, { scroll: false });
+      }
     } catch (error) {
-       console.error("Error saving practice test result:", error);
-       toast({ title: "Error Saving Result", description: "Could not save your test result to the database. Your results are available now but might not be saved in history.", variant: "destructive" });
-       setTestResult(resultData);
-       setTestState('completed');
+       console.error(`Error ${isUpdate ? 'updating' : 'saving'} practice test result:`, error);
+       let toastTitle = isUpdate ? "Update Failed" : "Error Saving Result";
+       let toastDescription = `Could not ${isUpdate ? 'update' : 'save'} your practice test result.`;
+       let shouldShowResults = !isUpdate;
+
+       if (error instanceof Error) {
+         toastDescription = error.message;
+         if (error.message.startsWith("Test history entry with ID")) {
+              toastDescription = "The original test entry to update was not found. It may have been deleted. Your current attempt was not saved.";
+              shouldShowResults = false;
+         } else if (isUpdate) {
+            shouldShowResults = true;
+         }
+       }
+       
+       toast({ title: toastTitle, description: toastDescription, variant: "destructive" });
+
+       if (shouldShowResults) {
+         setTestResult(resultData);
+         setTestState('completed');
+       } else {
+         setCurrentAttemptToUpdateId(null);
+         setTestState('setup');
+         router.push('/practice-test');
+       }
     }
   };
 
@@ -189,6 +232,7 @@ export default function PracticeTestPage() {
     setQuestions([]);
     setCurrentTestConfig(null);
     setCurrentOriginalQuizId(null);
+    setCurrentAttemptToUpdateId(null);
     setTestResult(null);
     router.replace('/practice-test'); 
   };

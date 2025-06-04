@@ -18,7 +18,7 @@ async function getTestHistoryCollection(): Promise<Collection<TestResultItem>> {
 }
 
 /**
- * Saves a test result to MongoDB.
+ * Saves a new test result to MongoDB.
  */
 export async function saveTestResult(result: TestResultItem): Promise<void> {
   try {
@@ -33,14 +33,51 @@ export async function saveTestResult(result: TestResultItem): Promise<void> {
 }
 
 /**
+ * Updates an existing test result in MongoDB.
+ */
+export async function updateTestResult(testAttemptId: string, updatedData: TestResultItem): Promise<void> {
+  try {
+    const collection = await getTestHistoryCollection();
+    // Prepare data for $set, ensuring _id is not part of it, and testAttemptId isn't changed by $set
+    // The updatedData object should contain the testAttemptId matching the query.
+    const payloadToSet = { ...updatedData };
+    // @ts-ignore
+    delete payloadToSet._id; // Prevent trying to set MongoDB's _id
+
+    const result = await collection.updateOne(
+      { testAttemptId: testAttemptId },
+      { $set: payloadToSet }
+    );
+
+    if (result.matchedCount === 0) {
+      console.warn(`Test result ${testAttemptId} not found for update in MongoDB.`);
+      throw new Error(`Test history entry with ID ${testAttemptId} not found. Could not update.`);
+    }
+    if (result.modifiedCount === 0 && result.matchedCount === 1) {
+      console.log(`Test result ${testAttemptId} was matched but no fields were different, so no update was performed.`);
+    } else {
+      console.log(`Test result ${testAttemptId} updated in MongoDB.`);
+    }
+  } catch (error) {
+    const originalErrorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`Error updating test result ${testAttemptId} in MongoDB:`, originalErrorMessage);
+    if (error instanceof Error && error.message.startsWith("Test history entry with ID")) {
+        throw error; 
+    }
+    throw new Error(`Failed to update test result in database. Original error: ${originalErrorMessage}`);
+  }
+}
+
+
+/**
  * Retrieves all test history from MongoDB, sorted by date completed descending.
  */
 export async function getTestHistory(): Promise<TestResultItem[]> {
   try {
     const collection = await getTestHistoryCollection();
     const history = await collection
-      .find({}, { projection: { _id: 0 } }) // Exclude MongoDB's _id field
-      .sort({ dateCompleted: -1 }) // Sort by dateCompleted descending
+      .find({}, { projection: { _id: 0 } }) 
+      .sort({ dateCompleted: -1 }) 
       .toArray();
     console.log(`Retrieved ${history.length} test history items from MongoDB.`);
     return history as TestResultItem[];

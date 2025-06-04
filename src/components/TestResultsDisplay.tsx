@@ -47,17 +47,22 @@ interface SubjectPerformance {
 }
 
 export default function TestResultsDisplay({ result, onNavigateHome }: TestResultsDisplayProps) {
-  const { score, questions, testType, originalQuizId, testTitle, timeTakenSeconds, config } = result;
+  const { score, questions, testType, originalQuizId, testTitle, timeTakenSeconds, config, testAttemptId } = result;
   const router = useRouter();
 
   const handleRetakeTest = () => {
-    if (originalQuizId) {
+    if (originalQuizId && testAttemptId) {
       const path = testType === 'mock' ? '/mock-test' : '/practice-test';
-      router.push(`${path}?retakeQuizId=${originalQuizId}`);
+      router.push(`${path}?retakeQuizId=${originalQuizId}&attemptToUpdateId=${testAttemptId}`);
     } else {
-      console.error("OriginalQuizId not found, cannot retake.");
-      // Fallback to home or relevant test setup page
-      router.push(testType === 'mock' ? '/mock-test' : '/practice-test');
+      console.error("OriginalQuizId or testAttemptId not found, cannot retake to update specific attempt.");
+      // Fallback to retaking the general quiz if attemptId is missing for some reason
+      if (originalQuizId) {
+        const path = testType === 'mock' ? '/mock-test' : '/practice-test';
+        router.push(`${path}?retakeQuizId=${originalQuizId}`);
+      } else {
+         router.push(testType === 'mock' ? '/mock-test' : '/practice-test');
+      }
     }
   };
   
@@ -65,9 +70,9 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
     if (testType === 'mock') {
       router.push('/mock-test'); 
     } else if (testType === 'practice') {
-      router.push('/practice-test'); // Navigate to the practice test setup page
+      router.push('/practice-test'); 
     } else {
-      router.push('/'); // Fallback to home
+      router.push('/'); 
     }
   };
 
@@ -319,6 +324,3 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
     </div>
   );
 }
-
-
-    

@@ -8,13 +8,13 @@ import TestInProgress from '@/components/TestInProgress';
 import TestResultsDisplay from '@/components/TestResultsDisplay';
 import { generateMockTest, type GenerateMockTestOutput } from '@/ai/flows/generate-mock-test';
 import type { AppQuestion, TestResultItem, TestScore, StoredQuiz } from '@/types';
-import { saveTestResult } from '@/lib/testHistoryStorage'; // Updated import
+import { saveTestResult, updateTestResult } from '@/lib/testHistoryStorage';
 import { saveGeneratedQuiz, getGeneratedQuiz } from '@/lib/quizStorage';
 import { generateQuizId } from '@/lib/quizUtils';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlayCircle } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 const MOCK_TEST_DURATION_MINUTES = 50; 
 const MOCK_TEST_NUM_QUESTIONS = 50; 
@@ -24,10 +24,12 @@ export default function MockTestPage() {
   const [testState, setTestState] = useState<'idle' | 'loading' | 'inProgress' | 'completed'>('idle');
   const [questions, setQuestions] = useState<AppQuestion[]>([]);
   const [currentOriginalQuizId, setCurrentOriginalQuizId] = useState<string | null>(null);
+  const [currentAttemptToUpdateId, setCurrentAttemptToUpdateId] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<TestResultItem | null>(null);
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   const transformAiQuestions = (aiOutput: GenerateMockTestOutput): AppQuestion[] => {
     return aiOutput.questions.map((q, index) => ({
@@ -41,6 +43,7 @@ export default function MockTestPage() {
 
   const startNewTest = async () => {
     setTestState('loading');
+    setCurrentAttemptToUpdateId(null); // Ensure it's a new test, not an update
     try {
       const aiOutput = await generateMockTest({ numberOfQuestions: MOCK_TEST_NUM_QUESTIONS });
       if (aiOutput && aiOutput.questions.length > 0) {
@@ -80,8 +83,13 @@ export default function MockTestPage() {
     }
   };
 
-  const startRetakeTest = useCallback(async (quizId: string) => {
+  const startRetakeTest = useCallback(async (quizId: string, attemptIdToUpdate?: string | null) => {
     setTestState('loading');
+    if (attemptIdToUpdate) {
+      setCurrentAttemptToUpdateId(attemptIdToUpdate);
+    } else {
+      setCurrentAttemptToUpdateId(null);
+    }
     try {
       const storedQuiz = await getGeneratedQuiz(quizId);
       if (storedQuiz && storedQuiz.testType === 'mock') {
@@ -110,17 +118,19 @@ export default function MockTestPage() {
 
   useEffect(() => {
     const retakeQuizId = searchParams.get('retakeQuizId');
+    const attemptIdToUpdate = searchParams.get('attemptToUpdateId');
     if (retakeQuizId && testState === 'idle') { 
-      startRetakeTest(retakeQuizId);
+      startRetakeTest(retakeQuizId, attemptIdToUpdate);
     }
   }, [searchParams, startRetakeTest, testState]);
 
 
-  const handleSubmitTest = async (userAnswers: Record<string, string>, originalQuizId: string, timeTakenSeconds: number) => {
+  const handleSubmitTest = async (userAnswers: Record<string, string>, originalQuizIdFromComponent: string, timeTakenSeconds: number) => {
     if (!currentOriginalQuizId) {
       toast({ title: "Error", description: "Cannot submit test without an original quiz ID.", variant: "destructive" });
       return;
     }
+    const isUpdate = !!currentAttemptToUpdateId;
 
     const answeredQuestions = questions.map(q => ({
       ...q,
@@ -146,7 +156,7 @@ export default function MockTestPage() {
 
     const score: TestScore = { correct, incorrect, unanswered, totalScore, maxScore };
     const resultData: TestResultItem = {
-      testAttemptId: `mock-attempt-${Date.now()}-${Math.random().toString(36).substring(2,7)}`, // More unique ID
+      testAttemptId: isUpdate ? currentAttemptToUpdateId! : `mock-attempt-${Date.now()}-${Math.random().toString(36).substring(2,7)}`,
       originalQuizId: currentOriginalQuizId, 
       testType: 'mock',
       testTitle: MOCK_TEST_TITLE,
@@ -157,16 +167,50 @@ export default function MockTestPage() {
     };
     
     try {
-      await saveTestResult(resultData); 
+      if (isUpdate) {
+        await updateTestResult(currentAttemptToUpdateId!, resultData);
+        toast({ title: "Test Retake Submitted!", description: "Your mock test history has been updated." });
+      } else {
+        await saveTestResult(resultData); 
+        toast({ title: "Test Submitted!", description: "Your mock test results are ready." });
+      }
       setTestResult(resultData);
       setTestState('completed');
-      toast({ title: "Test Submitted!", description: "Your mock test results are ready." });
+      
+      if (isUpdate) {
+        setCurrentAttemptToUpdateId(null);
+        const newSearchParams = new URLSearchParams(searchParams.toString());
+        newSearchParams.delete('attemptToUpdateId');
+        // newSearchParams.delete('retakeQuizId'); // Optional: clear retakeQuizId too
+        router.replace(`${pathname}?${newSearchParams.toString()}`, { scroll: false });
+      }
+
     } catch (error) {
-      console.error("Error saving mock test result:", error);
-      toast({ title: "Error Saving Result", description: "Could not save your test result to the database. Your results are available now but might not be saved in history.", variant: "destructive" });
-      // Still show results even if saving fails
-      setTestResult(resultData);
-      setTestState('completed');
+      console.error(`Error ${isUpdate ? 'updating' : 'saving'} test result:`, error);
+      let toastTitle = isUpdate ? "Update Failed" : "Error Saving Result";
+      let toastDescription = `Could not ${isUpdate ? 'update' : 'save'} your test result.`;
+      let shouldShowResults = !isUpdate; // By default, don't show results if update fails catastrophically
+
+      if (error instanceof Error) {
+        toastDescription = error.message; 
+        if (error.message.startsWith("Test history entry with ID")) { 
+             toastDescription = "The original test entry to update was not found. It may have been deleted. Your current attempt was not saved.";
+             shouldShowResults = false; 
+        } else if (isUpdate) { // If it's an update but not the "not found" error, still show results
+            shouldShowResults = true;
+        }
+      }
+      
+      toast({ title: toastTitle, description: toastDescription, variant: "destructive" });
+
+      if (shouldShowResults) {
+        setTestResult(resultData); // Show results for review, even if saving/updating had an issue (unless it was "not found" on update)
+        setTestState('completed');
+      } else {
+        setCurrentAttemptToUpdateId(null);
+        setTestState('idle'); 
+        router.push('/test-history'); 
+      }
     }
   };
 
