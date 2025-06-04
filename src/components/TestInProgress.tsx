@@ -45,8 +45,8 @@ const getQuestionStatusForSummary = (
   if (isAnswered && isMarked) return 'markedAndAnswered';
   if (isAnswered) return 'answered';
   if (isMarked) return 'markedForReview';
-  if (isVisited) return 'notAnswered'; // Visited but not answered and not marked
-  return 'notVisited'; // Not visited at all
+  if (isVisited) return 'notAnswered'; 
+  return 'notVisited'; 
 };
 
 
@@ -65,7 +65,7 @@ export default function TestInProgress({
   const [subjectSections, setSubjectSections] = useState<SubjectSection[]>([]);
   
   const onTimerExpiredSubmit = useCallback(() => {
-    const timeTaken = durationMinutes * 60; // When timer expires, full duration is taken
+    const timeTaken = durationMinutes * 60; 
     onTestSubmit(userAnswers, originalQuizId, timeTaken);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onTestSubmit, userAnswers, originalQuizId, durationMinutes]);
@@ -82,7 +82,7 @@ export default function TestInProgress({
       setVisitedQuestions(prev => new Set(prev).add(questions[0].id));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [questions, startTimer]); 
+  }, [questions]); 
 
   useEffect(() => {
     if (questions.length > 0) {
@@ -219,7 +219,7 @@ export default function TestInProgress({
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-var(--header-height,60px))]"> {/* Adjusted header height estimate */}
+    <div className="flex flex-col h-[calc(100vh-var(--header-height,60px))]">
       <TestInProgressHeader 
         testType={testType}
         subject={practiceTestConfig?.subject}
@@ -229,25 +229,33 @@ export default function TestInProgress({
         isActive={isActive}
         statusCounts={statusCounts}
       />
-      <div className="flex flex-1 overflow-hidden">
-        <ScrollArea className="flex-1 p-4 md:p-6">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center mb-2">
-                <h2 className="text-lg font-semibold">Question No. {currentQuestionIndex + 1}</h2>
-            </div>
-            <Card className="shadow-md">
-              <CardHeader>
-                {currentQuestion.subject && <CardDescription className="text-sm">Subject: {currentQuestion.subject}</CardDescription>}
+      <div className="flex flex-1 overflow-hidden"> 
+        
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col overflow-hidden p-4 md:p-6">
+          
+          {/* Question Number Display */}
+          <div className="flex justify-between items-center mb-2 flex-shrink-0">
+            <h2 className="text-lg font-semibold">Question No. {currentQuestionIndex + 1}</h2>
+          </div>
+
+          {/* Question Card - This will grow and its content will scroll if needed */}
+          <Card className="shadow-md flex-grow overflow-hidden flex flex-col mb-4">
+            {currentQuestion.subject && (
+              <CardHeader className="py-3 px-4 border-b flex-shrink-0 sticky top-0 bg-card z-10">
+                <CardDescription className="text-sm">Subject: {currentQuestion.subject}</CardDescription>
               </CardHeader>
-              <CardContent className="p-6">
-                <p className="text-base md:text-lg font-medium leading-relaxed py-4">{currentQuestion.questionText}</p>
+            )}
+            <ScrollArea className="flex-grow"> 
+              <CardContent className="p-4 md:p-6"> 
+                <p className="text-base md:text-lg font-medium leading-relaxed">{currentQuestion.questionText}</p>
                 <RadioGroup
                   value={userAnswers[currentQuestion.id] || ''}
                   onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
-                  className="space-y-3 mt-4"
+                  className="space-y-2 mt-3"
                 >
                   {currentQuestion.options.map((option, index) => (
-                    <div key={`${currentQuestion.id}-opt-${index}`} className="flex items-center space-x-3 p-3 border rounded-md hover:bg-muted/50 transition-colors">
+                    <div key={`${currentQuestion.id}-opt-${index}`} className="flex items-center space-x-2 p-2.5 border rounded-md hover:bg-muted/50 transition-colors">
                       <RadioGroupItem value={option} id={`${currentQuestion.id}-option-${index}`} />
                       <Label htmlFor={`${currentQuestion.id}-option-${index}`} className="flex-1 cursor-pointer text-sm md:text-base">
                         {option}
@@ -256,48 +264,50 @@ export default function TestInProgress({
                   ))}
                 </RadioGroup>
               </CardContent>
-            </Card>
+            </ScrollArea>
+          </Card>
 
-            {/* Action buttons moved here from footer */}
-            <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-3 py-4">
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={goToPreviousQuestion} disabled={currentQuestionIndex === 0}>
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Previous
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2 justify-end">
-                <Button variant="outline" onClick={handleClearResponse}>
-                  <X className="mr-2 h-4 w-4" /> Clear Response
-                </Button>
-                <Button variant="outline" onClick={handleMarkForReviewAndNext} title={markedForReview.has(currentQuestion.id) ? "Unmark for Review & Next" : "Mark for Review & Next"}>
-                  <Flag className="mr-2 h-4 w-4" /> {markedForReview.has(currentQuestion.id) ? "Unmark & Next" : "Mark & Next"}
-                </Button>
-                
-                {currentQuestionIndex < questions.length - 1 ? (
-                  <Button onClick={handleSaveAndNext} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                    Save & Next <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button onClick={handleSubmitTest} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                    <CheckCircle className="mr-2 h-4 w-4" /> Submit Test
-                  </Button>
-                )}
-              </div>
+          {/* Action buttons - Should always be visible */}
+          <div className="flex-shrink-0 mt-auto flex flex-col sm:flex-row justify-between items-center gap-2 py-3">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={goToPreviousQuestion} disabled={currentQuestionIndex === 0} size="sm">
+                <ArrowLeft className="mr-1.5 h-4 w-4" /> Previous
+              </Button>
             </div>
+            <div className="flex flex-wrap gap-2 justify-end">
+              <Button variant="outline" onClick={handleClearResponse} size="sm">
+                <X className="mr-1.5 h-4 w-4" /> Clear Response
+              </Button>
+              <Button variant="outline" onClick={handleMarkForReviewAndNext} title={markedForReview.has(currentQuestion.id) ? "Unmark for Review & Next" : "Mark for Review & Next"} size="sm">
+                <Flag className="mr-1.5 h-4 w-4" /> {markedForReview.has(currentQuestion.id) ? "Unmark & Next" : "Mark & Next"}
+              </Button>
+              
+              {currentQuestionIndex < questions.length - 1 ? (
+                <Button onClick={handleSaveAndNext} className="bg-primary hover:bg-primary/90 text-primary-foreground" size="sm">
+                  Save & Next <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Button>
+              ) : (
+                <Button onClick={handleSubmitTest} className="bg-primary hover:bg-primary/90 text-primary-foreground" size="sm">
+                  <CheckCircle className="mr-1.5 h-4 w-4" /> Submit Test
+                </Button>
+              )}
+            </div>
+          </div>
 
-
+          {/* Timer Alerts - Should also be visible */}
+          <div className="flex-shrink-0 text-center py-1">
             {totalSecondsLeft <= 60 && totalSecondsLeft > 0 && isActive && (
-              <p className="text-center text-destructive font-semibold">
+              <p className="text-sm text-destructive font-semibold">
                 {totalSecondsLeft} seconds remaining!
               </p>
             )}
              {totalSecondsLeft === 0 && ( 
-              <p className="text-center text-destructive font-bold text-lg p-4 bg-destructive/10 rounded-md">
+              <p className="text-sm text-destructive font-bold p-2 bg-destructive/10 rounded-md">
                 Time's up!
               </p>
             )}
           </div>
-        </ScrollArea>
+        </div>
         
         <TestInProgressSidebar
           questions={questions}
@@ -314,4 +324,4 @@ export default function TestInProgress({
     </div>
   );
 }
-
+    
