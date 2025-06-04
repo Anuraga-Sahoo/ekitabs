@@ -239,15 +239,15 @@ export default function TestInProgress({
               <CardHeader>
                 {currentQuestion.subject && <CardDescription className="text-sm">Subject: {currentQuestion.subject}</CardDescription>}
               </CardHeader>
-              <CardContent>
-                <p className="text-base md:text-lg font-medium leading-relaxed py-1">{currentQuestion.questionText}</p>
+              <CardContent className="p-6">
+                <p className="text-base md:text-lg font-medium leading-relaxed py-4">{currentQuestion.questionText}</p>
                 <RadioGroup
                   value={userAnswers[currentQuestion.id] || ''}
                   onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
-                  className="space-y-2 mt-2"
+                  className="space-y-3 mt-4"
                 >
                   {currentQuestion.options.map((option, index) => (
-                    <div key={`${currentQuestion.id}-opt-${index}`} className="flex items-center space-x-3 p-2 border rounded-md hover:bg-muted/50 transition-colors">
+                    <div key={`${currentQuestion.id}-opt-${index}`} className="flex items-center space-x-3 p-3 border rounded-md hover:bg-muted/50 transition-colors">
                       <RadioGroupItem value={option} id={`${currentQuestion.id}-option-${index}`} />
                       <Label htmlFor={`${currentQuestion.id}-option-${index}`} className="flex-1 cursor-pointer text-sm md:text-base">
                         {option}
