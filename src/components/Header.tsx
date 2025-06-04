@@ -2,15 +2,44 @@
 "use client";
 
 import Link from 'next/link';
-import { BookOpenText, History, Home, PencilRuler } from 'lucide-react';
+import { BookOpenText, History, Home, PencilRuler, Sparkles, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-const navItems = [
+interface NavItem {
+  href?: string;
+  label: string;
+  icon: React.ElementType;
+  isDropdown?: boolean;
+  dropdownItems?: DropdownItem[];
+  activePaths?: string[]; // For highlighting parent if a child is active
+}
+
+interface DropdownItem {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+}
+
+const navItems: NavItem[] = [
   { href: '/', label: 'Home', icon: Home },
-  { href: '/mock-test', label: 'Mock Test', icon: PencilRuler },
-  { href: '/practice-test', label: 'Practice', icon: BookOpenText },
+  { 
+    label: 'AI Powered Test', 
+    icon: Sparkles, 
+    isDropdown: true,
+    activePaths: ['/mock-test', '/practice-test'],
+    dropdownItems: [
+      { href: '/mock-test', label: 'Mock Test', icon: PencilRuler },
+      { href: '/practice-test', label: 'Practice Test', icon: BookOpenText },
+    ]
+  },
   { href: '/test-history', label: 'History', icon: History },
 ];
 
@@ -26,25 +55,62 @@ export default function Header() {
           </svg>
           TestPrep AI
         </Link>
-        <nav className="flex items-center space-x-2">
-          {navItems.map((item) => (
-            <Button
-              key={item.label}
-              variant={'ghost'} // Using ghost variant as base for custom styling
-              asChild
-              className={cn(
-                "text-sm font-medium",
-                pathname === item.href 
-                  ? 'text-primary font-semibold bg-muted' 
-                  : 'text-foreground hover:bg-muted/50 hover:text-primary'
-              )}
-            >
-              <Link href={item.href} className="flex items-center gap-2">
-                <item.icon className="h-4 w-4" />
-                <span className="hidden sm:inline">{item.label}</span>
-              </Link>
-            </Button>
-          ))}
+        <nav className="flex items-center space-x-1 sm:space-x-2">
+          {navItems.map((item) => {
+            const isActive = item.href === pathname || (item.activePaths && item.activePaths.includes(pathname));
+            if (item.isDropdown && item.dropdownItems) {
+              return (
+                <DropdownMenu key={item.label}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant={'ghost'}
+                      className={cn(
+                        "text-sm font-medium",
+                        isActive
+                          ? 'text-primary font-semibold bg-muted' 
+                          : 'text-foreground hover:bg-muted/50 hover:text-primary'
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span className="hidden sm:inline ml-2">{item.label}</span>
+                      <ChevronDown className="h-4 w-4 ml-1 sm:ml-2 opacity-70" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    {item.dropdownItems.map((dropdownItem) => (
+                      <DropdownMenuItem key={dropdownItem.label} asChild>
+                        <Link href={dropdownItem.href} className={cn(
+                          "flex items-center gap-2 w-full",
+                          pathname === dropdownItem.href ? "bg-muted text-primary font-medium" : ""
+                        )}>
+                          <dropdownItem.icon className="h-4 w-4" />
+                          <span>{dropdownItem.label}</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            }
+            return (
+              <Button
+                key={item.label}
+                variant={'ghost'} 
+                asChild
+                className={cn(
+                  "text-sm font-medium",
+                  isActive
+                    ? 'text-primary font-semibold bg-muted' 
+                    : 'text-foreground hover:bg-muted/50 hover:text-primary'
+                )}
+              >
+                <Link href={item.href || '#'} className="flex items-center gap-2">
+                  <item.icon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{item.label}</span>
+                </Link>
+              </Button>
+            );
+          })}
         </nav>
       </div>
     </header>
