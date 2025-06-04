@@ -64,13 +64,15 @@ export default function TestInProgress({
   const [visitedQuestions, setVisitedQuestions] = useState<Set<string>>(new Set());
   const [subjectSections, setSubjectSections] = useState<SubjectSection[]>([]);
   
-  // Moved useTestTimer hook initialization before handleTimerEndCallback
-  const { minutes, seconds, isActive, startTimer, stopTimer, totalSecondsLeft } = useTestTimer(durationMinutes, handleTimerEndCallback);
-
-  const handleTimerEndCallback = useCallback(() => {
-    const timeTaken = (durationMinutes * 60) - totalSecondsLeft; 
+  // Define the callback for when the timer naturally expires FIRST.
+  const onTimerExpiredSubmit = useCallback(() => {
+    // When the timer expires naturally, the time taken is the full duration.
+    const timeTaken = durationMinutes * 60;
     onTestSubmit(userAnswers, originalQuizId, timeTaken);
-  }, [onTestSubmit, userAnswers, originalQuizId, durationMinutes, totalSecondsLeft]);
+  }, [onTestSubmit, userAnswers, originalQuizId, durationMinutes]);
+
+  // NOW initialize useTestTimer, passing the defined callback.
+  const { minutes, seconds, isActive, startTimer, stopTimer, totalSecondsLeft } = useTestTimer(durationMinutes, onTimerExpiredSubmit);
 
   useEffect(() => {
     startTimer();
@@ -199,6 +201,7 @@ export default function TestInProgress({
     setCurrentQuestionIndex(index);
   };
 
+  // This is for manual submission by the user
   const handleSubmitTest = () => {
     stopTimer();
     const elapsedSeconds = (durationMinutes * 60) - totalSecondsLeft;
@@ -311,5 +314,3 @@ export default function TestInProgress({
     </div>
   );
 }
-
-    
