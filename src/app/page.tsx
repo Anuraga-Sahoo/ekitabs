@@ -7,39 +7,39 @@ import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import TestimonialCarousel from '@/components/TestimonialCarousel'; // Import the new component
 
-// Dummy data for testimonials
+// Updated testimonial data for NEET
 const testimonialsData = [
   {
     id: 1,
     name: "Priya Sharma",
     role: "NEET Aspirant",
-    feedback: "TestPrep AI has revolutionized my study routine! The AI-generated mock tests are incredibly accurate and have helped me identify my weak areas. My scores have improved significantly.",
+    feedback: "TestPrep AI's NEET mock tests are incredibly realistic, covering Physics, Chemistry, and Biology just like the actual exam. The AI-generated questions helped me identify weak topics and significantly boosted my confidence and scores!",
     avatar: "https://placehold.co/80x80.png",
-    dataAiHint: "student studying"
+    dataAiHint: "NEET student"
   },
   {
     id: 2,
     name: "Arjun Kumar",
-    role: "JEE Candidate",
-    feedback: "The practice test feature is fantastic. Being able to focus on specific chapters and difficulty levels with AI-generated MCQs is a game-changer for targeted preparation.",
+    role: "Medical Entrance Candidate",
+    feedback: "The practice test feature for specific NEET chapters is a lifesaver! I can focus on difficult concepts in Biology or challenging Physics problems. The AI MCQs are top-notch for targeted NEET prep.",
     avatar: "https://placehold.co/80x80.png",
-    dataAiHint: "focused student"
+    dataAiHint: "focused medical student"
   },
   {
     id: 3,
     name: "Dr. Rina Mehta",
-    role: "Educator",
-    feedback: "As an educator, I'm impressed by TestPrep AI's ability to create diverse and relevant question sets. It's a valuable tool for students aiming for top scores in competitive exams.",
+    role: "NEET Biology Coach",
+    feedback: "As an educator specializing in NEET, I'm impressed by TestPrep AI's ability to create diverse and relevant question sets for Physics, Chemistry, and Biology. It's an invaluable tool for students aiming for top scores in the NEET exam.",
     avatar: "https://placehold.co/80x80.png",
-    dataAiHint: "teacher portrait"
+    dataAiHint: "biology teacher"
   },
   {
     id: 4,
     name: "Sameer Patel",
-    role: "Class 12 Student",
-    feedback: "The mock tests feel very close to the real exam environment. The detailed analysis after each test helps me understand where I need to put in more effort. Highly recommended!",
+    role: "Aspiring Doctor (NEET)",
+    feedback: "The AI mock tests simulate the NEET environment perfectly. Analyzing my performance on questions from all three subjects helps me understand where I need to improve for the actual medical entrance exam. Highly recommended!",
     avatar: "https://placehold.co/80x80.png",
-    dataAiHint: "happy student"
+    dataAiHint: "determined student"
   }
 ];
 

@@ -66,7 +66,7 @@ export default function TestimonialCarousel({ testimonials, interval = 7000 }: T
               >
                 “
               </span>
-              <p className="text-sm text-gray-600 dark:text-gray-400 pt-4 pl-3 sm:pl-4 leading-relaxed line-clamp-5"> 
+              <p className="text-base text-gray-700 dark:text-gray-300 pt-4 pl-3 sm:pl-4 leading-relaxed line-clamp-5"> 
                 {currentTestimonial.feedback}
               </p>
             </div>
@@ -93,4 +93,3 @@ export default function TestimonialCarousel({ testimonials, interval = 7000 }: T
     </div>
   );
 }
-
