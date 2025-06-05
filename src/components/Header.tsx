@@ -85,10 +85,13 @@ export default function Header() {
             </svg>
             TestPrep AI
           </Link>
-          <div className="flex items-center space-x-2">
+          <div className="hidden md:flex items-center space-x-2">
             <Skeleton className="h-8 w-16 rounded" />
             <Skeleton className="h-8 w-20 rounded" />
             <Skeleton className="h-8 w-8 rounded-full" />
+          </div>
+          <div className="md:hidden">
+             <Skeleton className="h-8 w-8 rounded" />
           </div>
         </div>
       </header>
@@ -273,4 +276,3 @@ export default function Header() {
     </header>
   );
 }
-
