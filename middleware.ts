@@ -31,9 +31,9 @@ export async function middleware(request: NextRequest) {
   const authRedirectPaths = ['/login', '/signup'];
 
   if (publicPaths.includes(pathname) || pathname.startsWith('/_next/') || pathname.startsWith('/static/') || pathname === '/favicon.ico' || pathname === '/api/health') {
-    // If authenticated and trying to access login/signup, redirect to home
+    // If authenticated and trying to access login/signup, redirect to dashboard
     if (isAuthenticated && authRedirectPaths.includes(pathname)) {
-      return NextResponse.redirect(new URL('/', request.url));
+      return NextResponse.redirect(new URL('/dashboard', request.url));
     }
     return NextResponse.next();
   }
@@ -62,10 +62,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - / (root path, often public) - but we want to protect this if user not logged in
      * - /api/health (health check endpoint)
      */
-    // '/((?!_next/static|_next/image|favicon.ico|api/health).*)', // Original more complex matcher
-     '/((?!api/health|_next/static|_next/image|favicon.ico).*)', // Simplified matcher
+     '/((?!api/health|_next/static|_next/image|favicon.ico).*)', 
   ],
 };

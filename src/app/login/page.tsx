@@ -57,15 +57,10 @@ export default function LoginPage() {
       if (response.ok) {
         toast({
           title: "Login Successful!",
-          description: "Welcome back!",
+          description: "Welcome back! Redirecting to your dashboard...",
         });
-        // Client-side cookies are set by the API.
-        // The useAuth hook will pick up changes from cookies.
-        // We need to trigger a state update in useAuth if it's not already listening effectively
-        updateAuthState(); // Explicitly tell useAuth to re-check cookies
-        router.push('/'); // Redirect to home
-        // router.refresh() might not be needed if useAuth updates Header correctly
-        // or if middleware handles the redirect to home for logged-in users trying to access /login
+        updateAuthState(); 
+        router.push('/dashboard'); // Redirect to dashboard
       } else {
         toast({
           title: "Login Failed",
