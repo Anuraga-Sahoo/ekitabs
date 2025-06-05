@@ -20,6 +20,7 @@ import { useState } from "react";
 import { Loader2, LogInIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth"; // Import useAuth
 
 const loginFormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -31,6 +32,7 @@ type LoginFormValues = z.infer<typeof loginFormSchema>;
 export default function LoginPage() {
   const { toast } = useToast();
   const router = useRouter();
+  const { updateAuthState } = useAuth(); // Get updateAuthState from useAuth
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<LoginFormValues>({
@@ -57,10 +59,13 @@ export default function LoginPage() {
           title: "Login Successful!",
           description: "Welcome back!",
         });
-        // For client-side cookie checking (e.g., in Header)
-        document.cookie = "isLoggedIn=true; path=/; max-age=" + (60 * 60 * 24 * 7); // 1 week
-        router.push('/');
-        router.refresh(); // Important to re-fetch server components and middleware state
+        // Client-side cookies are set by the API.
+        // The useAuth hook will pick up changes from cookies.
+        // We need to trigger a state update in useAuth if it's not already listening effectively
+        updateAuthState(); // Explicitly tell useAuth to re-check cookies
+        router.push('/'); // Redirect to home
+        // router.refresh() might not be needed if useAuth updates Header correctly
+        // or if middleware handles the redirect to home for logged-in users trying to access /login
       } else {
         toast({
           title: "Login Failed",

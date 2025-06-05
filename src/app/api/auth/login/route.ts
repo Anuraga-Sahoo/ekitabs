@@ -66,21 +66,21 @@ export async function POST(request: NextRequest) {
     );
     
     const cookieStore = cookies();
-    cookieStore.set(AUTH_TOKEN_NAME, token, {
-        httpOnly: true,
+    const cookieOptionsBase = {
         secure: process.env.NODE_ENV !== 'development',
         maxAge: 60 * 60 * 24 * 7, // 1 week
         path: '/',
-        sameSite: 'lax',
+        sameSite: 'lax' as const,
+    };
+
+    cookieStore.set(AUTH_TOKEN_NAME, token, {
+        ...cookieOptionsBase,
+        httpOnly: true,
     });
     
-    // Also set a client-readable cookie for UI purposes
-    cookieStore.set('isLoggedIn', 'true', {
-        secure: process.env.NODE_ENV !== 'development',
-        maxAge: 60 * 60 * 24 * 7, // 1 week
-        path: '/',
-        sameSite: 'lax',
-    });
+    // Client-readable cookies
+    cookieStore.set('isLoggedIn', 'true', cookieOptionsBase);
+    cookieStore.set('userEmail', user.email, cookieOptionsBase);
 
 
     return NextResponse.json({ message: "Logged in successfully.", user: { id: user._id.toString(), email: user.email } }, { status: 200 });
@@ -91,3 +91,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Internal server error", error: errorMessage }, { status: 500 });
   }
 }
+

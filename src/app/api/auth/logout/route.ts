@@ -6,19 +6,20 @@ import { cookies } from 'next/headers';
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = cookies();
+    const cookieOptionsBase = {
+        secure: process.env.NODE_ENV !== 'development',
+        expires: new Date(0),
+        path: '/',
+        sameSite: 'lax' as const,
+    };
+
     cookieStore.set(AUTH_TOKEN_NAME, '', {
+        ...cookieOptionsBase,
         httpOnly: true,
-        secure: process.env.NODE_ENV !== 'development',
-        expires: new Date(0),
-        path: '/',
-        sameSite: 'lax',
     });
-    cookieStore.set('isLoggedIn', '', { // Clear client-readable cookie too
-        secure: process.env.NODE_ENV !== 'development',
-        expires: new Date(0),
-        path: '/',
-        sameSite: 'lax',
-    });
+    
+    cookieStore.set('isLoggedIn', '', cookieOptionsBase); 
+    cookieStore.set('userEmail', '', cookieOptionsBase); // Clear userEmail cookie
 
     return NextResponse.json({ message: "Logged out successfully." }, { status: 200 });
   } catch (error) {

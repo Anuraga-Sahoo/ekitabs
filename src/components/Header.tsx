@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { BookOpenText, History, Home, PencilRuler, Sparkles, ChevronDown, LogIn, LogOut, UserPlus } from 'lucide-react';
+import { BookOpenText, History, Home, PencilRuler, Sparkles, ChevronDown, LogIn, LogOut, UserPlus, UserCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -11,43 +11,67 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator
+  DropdownMenuSeparator,
+  DropdownMenuLabel
 } from "@/components/ui/dropdown-menu";
-import { useAuth } from '@/hooks/useAuth'; // Import the new hook
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from '@/hooks/useAuth';
+import { useEffect } from 'react';
 
-interface NavItem {
+interface NavItemConfig {
   href?: string;
   label: string;
   icon: React.ElementType;
   isDropdown?: boolean;
-  dropdownItems?: DropdownItem[];
-  activePaths?: string[]; 
+  dropdownItems?: DropdownItemConfig[];
+  activePaths?: string[];
+  requiresAuth?: boolean; // New property
 }
 
-interface DropdownItem {
+interface DropdownItemConfig {
   href: string;
   label: string;
   icon: React.ElementType;
 }
 
-const navItems: NavItem[] = [
-  { href: '/', label: 'Home', icon: Home },
-  { 
-    label: 'AI Powered Test', 
-    icon: Sparkles, 
+const allNavItems: NavItemConfig[] = [
+  { href: '/', label: 'Home', icon: Home, requiresAuth: false },
+  {
+    label: 'AI Powered Test',
+    icon: Sparkles,
     isDropdown: true,
     activePaths: ['/mock-test', '/practice-test'],
     dropdownItems: [
       { href: '/mock-test', label: 'Mock Test', icon: PencilRuler },
       { href: '/practice-test', label: 'Practice Test', icon: BookOpenText },
-    ]
+    ],
+    requiresAuth: true,
   },
-  { href: '/test-history', label: 'History', icon: History },
+  { href: '/test-history', label: 'History', icon: History, requiresAuth: true },
 ];
 
 export default function Header() {
   const pathname = usePathname();
-  const { isLoggedIn, isLoading, logout } = useAuth();
+  const { isLoggedIn, userEmail, isLoading, logout, updateAuthState } = useAuth();
+
+  // This effect is crucial for reflecting login state changes from other tabs or direct cookie manipulation
+  useEffect(() => {
+    const handleFocus = () => {
+      updateAuthState(); // Re-check cookie state when tab gets focus
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [updateAuthState]);
+
+
+  const getInitials = (email: string | null | undefined) => {
+    if (!email) return 'U'; // Default User
+    return email.charAt(0).toUpperCase();
+  };
+
+  const visibleNavItems = allNavItems.filter(item => !item.requiresAuth || isLoggedIn);
 
   return (
     <header className="bg-background text-foreground shadow-md sticky top-0 z-50 border-b">
@@ -59,7 +83,7 @@ export default function Header() {
           TestPrep AI
         </Link>
         <nav className="flex items-center space-x-1 sm:space-x-2">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = item.href === pathname || (item.activePaths && item.activePaths.includes(pathname));
             if (item.isDropdown && item.dropdownItems) {
               return (
@@ -70,7 +94,7 @@ export default function Header() {
                       className={cn(
                         "text-sm font-medium",
                         isActive
-                          ? 'text-primary font-semibold bg-muted' 
+                          ? 'text-primary font-semibold bg-muted'
                           : 'text-foreground hover:bg-muted/50 hover:text-primary'
                       )}
                     >
@@ -98,12 +122,12 @@ export default function Header() {
             return (
               <Button
                 key={item.label}
-                variant={'ghost'} 
+                variant={'ghost'}
                 asChild
                 className={cn(
                   "text-sm font-medium",
                   isActive
-                    ? 'text-primary font-semibold bg-muted' 
+                    ? 'text-primary font-semibold bg-muted'
                     : 'text-foreground hover:bg-muted/50 hover:text-primary'
                 )}
               >
@@ -115,34 +139,56 @@ export default function Header() {
             );
           })}
 
-          {!isLoading && (
-            isLoggedIn ? (
-              <Button onClick={logout} variant="ghost" className="text-sm font-medium text-foreground hover:bg-muted/50 hover:text-primary">
-                <LogOut className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Logout</span>
-              </Button>
-            ) : (
-              <>
-                <Button variant="ghost" asChild className="text-sm font-medium text-foreground hover:bg-muted/50 hover:text-primary">
-                  <Link href="/login" className="flex items-center gap-2">
-                    <LogIn className="h-4 w-4" />
-                    <span className="hidden sm:inline">Login</span>
-                  </Link>
-                </Button>
-                <Button variant="default" asChild size="sm" className="text-sm">
-                  <Link href="/signup" className="flex items-center gap-1">
-                     <UserPlus className="h-4 w-4" />
-                    <span className="hidden sm:inline">Sign Up</span>
-                  </Link>
-                </Button>
-              </>
-            )
-          )}
-          {isLoading && (
+          {isLoading ? (
              <div className="flex items-center space-x-2">
                 <div className="h-8 w-16 bg-muted rounded animate-pulse"></div>
                 <div className="h-8 w-20 bg-muted rounded animate-pulse"></div>
             </div>
+          ) : isLoggedIn ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    {/* <AvatarImage src="/avatars/01.png" alt="@shadcn" /> Could add actual image if available */}
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {getInitials(userEmail)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">My Account</p>
+                    <p className="text-xs leading-none text-muted-foreground truncate">
+                      {userEmail || "User"}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {/* Add other items like "Profile", "Settings" here if needed */}
+                {/* <DropdownMenuItem>Profile</DropdownMenuItem> */}
+                <DropdownMenuItem onClick={logout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <Button variant="ghost" asChild className="text-sm font-medium text-foreground hover:bg-muted/50 hover:text-primary">
+                <Link href="/login" className="flex items-center gap-2">
+                  <LogIn className="h-4 w-4" />
+                  <span className="hidden sm:inline">Login</span>
+                </Link>
+              </Button>
+              <Button variant="default" asChild size="sm" className="text-sm">
+                <Link href="/signup" className="flex items-center gap-1">
+                   <UserPlus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Sign Up</span>
+                </Link>
+              </Button>
+            </>
           )}
         </nav>
       </div>
