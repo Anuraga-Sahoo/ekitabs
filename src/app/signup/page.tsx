@@ -65,7 +65,7 @@ export default function SignupPage() {
           try {
             const textResponse = await response.text();
             if (textResponse && textResponse.toLowerCase().includes('<html')) {
-              errorText = `Server returned an unexpected HTML response (status ${response.status}). Please check server logs.`;
+              errorText = `Server returned an unexpected HTML response (status ${response.status}). Please check server logs. This often indicates a server startup issue, possibly related to environment variables like MONGODB_URI.`;
             } else if (textResponse) {
               errorText = `Server error (status ${response.status}): ${textResponse.substring(0, 150)}`;
             }
@@ -78,7 +78,7 @@ export default function SignupPage() {
           description: errorText,
           variant: "destructive",
         });
-        return; 
+        return;
       }
 
       // If response.ok is true, assume success
