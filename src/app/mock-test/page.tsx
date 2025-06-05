@@ -22,7 +22,7 @@ const MOCK_TEST_TITLE = "Mock Test (360 Questions)";
 
 export default function MockTestPage() {
   const [testState, setTestState] = useState<'idle' | 'loading' | 'inProgress' | 'completed'>('idle');
-  const [questions, setQuestions] = useState<AppQuestion[]>(([]);
+  const [questions, setQuestions] = useState<AppQuestion[]>([]);
   const [currentOriginalQuizId, setCurrentOriginalQuizId] = useState<string | null>(null);
   const [currentAttemptToUpdateId, setCurrentAttemptToUpdateId] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<TestResultItem | null>(null);
@@ -266,5 +266,3 @@ export default function MockTestPage() {
     </div>
   );
 }
-
-    
