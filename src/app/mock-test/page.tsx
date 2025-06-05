@@ -22,7 +22,7 @@ const MOCK_TEST_TITLE = "Mock Test (360 Questions)";
 
 export default function MockTestPage() {
   const [testState, setTestState] = useState<'idle' | 'loading' | 'inProgress' | 'completed'>('idle');
-  const [questions, setQuestions] = useState<AppQuestion[]>([]);
+  const [questions, setQuestions] = useState<AppQuestion[]>(([]);
   const [currentOriginalQuizId, setCurrentOriginalQuizId] = useState<string | null>(null);
   const [currentAttemptToUpdateId, setCurrentAttemptToUpdateId] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<TestResultItem | null>(null);
@@ -45,9 +45,6 @@ export default function MockTestPage() {
     setTestState('loading');
     setCurrentAttemptToUpdateId(null); // Ensure it's a new test, not an update
     try {
-      // NOTE: The generateMockTest flow is currently hardcoded to 50 questions.
-      // Passing MOCK_TEST_NUM_QUESTIONS (360) here will likely cause an error
-      // in the AI flow until that flow is updated to support 360 questions.
       const aiOutput = await generateMockTest({ numberOfQuestions: MOCK_TEST_NUM_QUESTIONS });
       if (aiOutput && aiOutput.questions.length > 0) {
         const transformedQuestions = transformAiQuestions(aiOutput);
@@ -76,7 +73,11 @@ export default function MockTestPage() {
         if (error.message.includes("503") || error.message.toLowerCase().includes("model is overloaded")) {
           description = "The AI model is currently overloaded. Please try again in a few moments.";
         } else if (error.message.toLowerCase().includes("failed to save quiz to database")) {
-          description = "Could not save the generated test to the database. Please check your connection and try again.";
+           if (error.message.toLowerCase().includes("authentication failed")) {
+            description = "Could not save the generated test to the database due to an authentication issue. Please check your MONGODB_URI and database user permissions.";
+          } else {
+            description = "Could not save the generated test to the database. Please check your connection and try again.";
+          }
         } else if (error.message.includes("Mock test generation is configured for exactly 50 questions")) {
           description = "The AI is currently set up for 50-question mock tests. Support for 360 questions is pending an AI flow update. Please try a practice test or check back later.";
         }
@@ -99,10 +100,6 @@ export default function MockTestPage() {
     try {
       const storedQuiz = await getGeneratedQuiz(quizId);
       if (storedQuiz && storedQuiz.testType === 'mock') {
-        // For a retake, we want to ensure the number of questions and duration match what was originally stored,
-        // or what the current page expects for a *new* test if it's just retaking old questions for practice.
-        // For now, we'll use the current page's duration/title for consistency if it's an *updated* attempt,
-        // but ideally, this info would also be stored with the StoredQuiz if it can vary.
         const questionsForRetake = storedQuiz.questions.map(q => ({ ...q, userAnswer: undefined }));
         setQuestions(questionsForRetake);
         setCurrentOriginalQuizId(storedQuiz.id);
@@ -162,16 +159,14 @@ export default function MockTestPage() {
     });
 
     const totalScore = (correct * 4) - (incorrect * 1);
-    // Max score should be based on the actual number of questions presented in this attempt.
     const maxScore = questions.length * 4; 
 
     const score: TestScore = { correct, incorrect, unanswered, totalScore, maxScore };
-    // Use MOCK_TEST_TITLE which reflects the intended 360 questions
     const resultData: TestResultItem = {
       testAttemptId: isUpdate ? currentAttemptToUpdateId! : `mock-attempt-${Date.now()}-${Math.random().toString(36).substring(2,7)}`,
       originalQuizId: currentOriginalQuizId,
       testType: 'mock',
-      testTitle: MOCK_TEST_TITLE, // Use the title reflecting 360 questions
+      testTitle: MOCK_TEST_TITLE, 
       dateCompleted: new Date().toISOString(),
       score,
       questions: answeredQuestions,
@@ -193,7 +188,6 @@ export default function MockTestPage() {
         setCurrentAttemptToUpdateId(null);
         const newSearchParams = new URLSearchParams(searchParams.toString());
         newSearchParams.delete('attemptToUpdateId');
-        // newSearchParams.delete('retakeQuizId'); // Optional: clear retakeQuizId too
         router.replace(`${pathname}?${newSearchParams.toString()}`, { scroll: false });
       }
 
@@ -201,14 +195,14 @@ export default function MockTestPage() {
       console.error(`Error ${isUpdate ? 'updating' : 'saving'} test result:`, error);
       let toastTitle = isUpdate ? "Update Failed" : "Error Saving Result";
       let toastDescription = `Could not ${isUpdate ? 'update' : 'save'} your test result.`;
-      let shouldShowResults = !isUpdate; // By default, don't show results if update fails catastrophically
+      let shouldShowResults = !isUpdate; 
 
       if (error instanceof Error) {
         toastDescription = error.message;
         if (error.message.startsWith("Test history entry with ID")) {
              toastDescription = "The original test entry to update was not found. It may have been deleted. Your current attempt was not saved.";
              shouldShowResults = false;
-        } else if (isUpdate) { // If it's an update but not the "not found" error, still show results
+        } else if (isUpdate) { 
             shouldShowResults = true;
         }
       }
@@ -216,7 +210,7 @@ export default function MockTestPage() {
       toast({ title: toastTitle, description: toastDescription, variant: "destructive" });
 
       if (shouldShowResults) {
-        setTestResult(resultData); // Show results for review, even if saving/updating had an issue (unless it was "not found" on update)
+        setTestResult(resultData); 
         setTestState('completed');
       } else {
         setCurrentAttemptToUpdateId(null);
@@ -233,8 +227,8 @@ export default function MockTestPage() {
   if (testState === 'inProgress' && currentOriginalQuizId) {
     return (
       <TestInProgress
-        questions={questions} // Pass the actual questions, could be 50 or eventually 360
-        durationMinutes={MOCK_TEST_DURATION_MINUTES} // 3 hours
+        questions={questions} 
+        durationMinutes={MOCK_TEST_DURATION_MINUTES} 
         onTestSubmit={handleSubmitTest}
         testType="mock"
         originalQuizId={currentOriginalQuizId}
@@ -272,3 +266,5 @@ export default function MockTestPage() {
     </div>
   );
 }
+
+    

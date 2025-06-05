@@ -80,7 +80,11 @@ export default function PracticeTestPage() {
         if (error.message.includes("503") || error.message.toLowerCase().includes("model is overloaded")) {
           description = "The AI model is currently overloaded. Please try again in a few moments.";
         } else if (error.message.toLowerCase().includes("failed to save quiz to database")) {
-          description = "Could not save the generated test to the database. Please check your connection and try again.";
+          if (error.message.toLowerCase().includes("authentication failed")) {
+            description = "Could not save the generated test to the database due to an authentication issue. Please check your MONGODB_URI and database user permissions.";
+          } else {
+            description = "Could not save the generated test to the database. Please check your connection and try again.";
+          }
         } else {
           description = `Details: ${error.message}`;
         }
@@ -266,3 +270,5 @@ export default function PracticeTestPage() {
     </div>
   );
 }
+
+    
