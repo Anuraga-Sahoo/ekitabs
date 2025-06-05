@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { BookOpenText, History, Home, PencilRuler, Sparkles, ChevronDown } from 'lucide-react';
+import { BookOpenText, History, Home, PencilRuler, Sparkles, ChevronDown, LogIn, LogOut, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -11,7 +11,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from '@/hooks/useAuth'; // Import the new hook
 
 interface NavItem {
   href?: string;
@@ -19,7 +21,7 @@ interface NavItem {
   icon: React.ElementType;
   isDropdown?: boolean;
   dropdownItems?: DropdownItem[];
-  activePaths?: string[]; // For highlighting parent if a child is active
+  activePaths?: string[]; 
 }
 
 interface DropdownItem {
@@ -45,6 +47,7 @@ const navItems: NavItem[] = [
 
 export default function Header() {
   const pathname = usePathname();
+  const { isLoggedIn, isLoading, logout } = useAuth();
 
   return (
     <header className="bg-background text-foreground shadow-md sticky top-0 z-50 border-b">
@@ -111,6 +114,36 @@ export default function Header() {
               </Button>
             );
           })}
+
+          {!isLoading && (
+            isLoggedIn ? (
+              <Button onClick={logout} variant="ghost" className="text-sm font-medium text-foreground hover:bg-muted/50 hover:text-primary">
+                <LogOut className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Logout</span>
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" asChild className="text-sm font-medium text-foreground hover:bg-muted/50 hover:text-primary">
+                  <Link href="/login" className="flex items-center gap-2">
+                    <LogIn className="h-4 w-4" />
+                    <span className="hidden sm:inline">Login</span>
+                  </Link>
+                </Button>
+                <Button variant="default" asChild size="sm" className="text-sm">
+                  <Link href="/signup" className="flex items-center gap-1">
+                     <UserPlus className="h-4 w-4" />
+                    <span className="hidden sm:inline">Sign Up</span>
+                  </Link>
+                </Button>
+              </>
+            )
+          )}
+          {isLoading && (
+             <div className="flex items-center space-x-2">
+                <div className="h-8 w-16 bg-muted rounded animate-pulse"></div>
+                <div className="h-8 w-20 bg-muted rounded animate-pulse"></div>
+            </div>
+          )}
         </nav>
       </div>
     </header>
