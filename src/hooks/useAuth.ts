@@ -49,7 +49,7 @@ export function useAuth() {
         setIsLoggedIn(false);
         setUserEmail(null);
         toast({ title: "Logged Out", description: "You have been successfully logged out." });
-        router.push('/login');
+        router.push('/'); // Redirect to home page
         router.refresh(); // Refresh to update server-side state
       } else {
         toast({ title: "Logout Failed", description: "Could not log out. Please try again.", variant: "destructive" });
@@ -69,7 +69,8 @@ export function useAuth() {
       if (document.visibilityState === 'visible') {
         const currentLoggedInCookie = getCookie('isLoggedIn') === 'true';
         if (currentLoggedInCookie !== isLoggedIn && !isLoading) {
-          router.refresh();
+          updateAuthState(); // Update auth state first
+          router.refresh(); // Then refresh
         }
       }
     };
@@ -77,8 +78,9 @@ export function useAuth() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isLoggedIn, isLoading, router]);
+  }, [isLoggedIn, isLoading, router, updateAuthState]);
 
 
   return { isLoggedIn, userEmail, isLoading, logout, updateAuthState };
 }
+
