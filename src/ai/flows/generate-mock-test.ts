@@ -34,7 +34,6 @@ const GenerateMockTestOutputSchema = z.object({
 export type GenerateMockTestOutput = z.infer<typeof GenerateMockTestOutputSchema>;
 
 export async function generateMockTest(input: GenerateMockTestInput): Promise<GenerateMockTestOutput> {
-  // The check for exactly 50 questions has been removed to support 360 questions.
   // The prompt has been updated to reflect the new distribution for 360 questions.
   // If a number other than 360 is passed, the prompt's specific counts will be static (86, 94, 180)
   // but {{numberOfQuestions}} will reflect the input. For best results, send 360.
@@ -48,7 +47,7 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert test generator. Your task is to create a mock Multiple Choice Question (MCQ) test based on the class 11th and 12th syllabus.
 You MUST generate a total of {{numberOfQuestions}} MCQs. The output MUST be a single JSON object containing a key "questions" which is an array of these {{numberOfQuestions}} question objects.
 
-ABSOLUTE CRITICAL REQUIREMENT: For EVERY SINGLE ONE of the {{numberOfQuestions}} questions, you MUST provide all four (4) specified fields: 'subject', 'question', 'options', and 'answer'. The 'options' array for EVERY SINGLE question MUST contain EXACTLY four (4) string items. No exceptions.
+ABSOLUTE CRITICAL REQUIREMENT: For EVERY SINGLE ONE of the {{numberOfQuestions}} questions, you MUST provide all four (4) specified fields: 'subject', 'question', 'options', and 'answer'. The 'options' array for EVERY SINGLE question MUST contain EXACTLY four (4) string items. No exceptions. The 'subject' field is MANDATORY and must be one of "Physics", "Chemistry", or "Biology".
 
 The generation of questions MUST follow this specific subject distribution and structure for a {{numberOfQuestions}}-question test:
 
@@ -80,11 +79,12 @@ The generation of questions MUST follow this specific subject distribution and s
     *   Crucially, for EVERY one of these 180 Biology questions, all four fields ('subject' set to "Biology", 'question', 'options' with exactly 4 string items, 'answer') MUST be present. NO EXCEPTIONS. OMITTING ANY OF THESE FIELDS OR PROVIDING FEWER/MORE THAN 4 OPTIONS FOR ANY QUESTION IN THIS BLOCK WILL INVALIDATE THE ENTIRE TEST. Be meticulous. DOUBLE CHECK EACH QUESTION.
 
 **Overall Requirements & Final Check:**
-*   ULTRA-CRITICAL: Before outputting, please review your generated list of {{numberOfQuestions}} questions. Every single one of these question objects MUST contain all four fields: 'subject' (correctly set to "Physics", "Chemistry", or "Biology" as per its section), 'question', 'options' (an array of PRECISELY 4 strings), and 'answer'. There are no exceptions. Double-check each question for all four fields and the exact option count. Failure to meet these requirements for even a single question means the entire output is incorrect.
-*   The total number of questions in the "questions" array MUST be exactly {{numberOfQuestions}}. This means 86 Physics, then 94 Chemistry, then 180 Biology, in that order.
+*   ULTRA-CRITICAL: Before outputting, please review your generated list of {{numberOfQuestions}} questions. Every single one of these question objects MUST contain all four fields: 'subject' (correctly set to "Physics", "Chemistry", or "Biology" as per its section), 'question', 'options' (an array of PRECISELY 4 strings), and 'answer'. There are no exceptions. Double-check each question for all four fields and the exact option count. Failure to meet these requirements for even a single question means the entire output is incorrect. Be meticulous.
+*   Ensure that even the very last question generated in the list is complete and adheres to this structure. Do not truncate or omit fields for any question.
+*   The total number of questions in the "questions" array MUST be exactly {{numberOfQuestions}}. This means 86 Physics, then 94 Chemistry, then 180 Biology, in that order. The total count of objects in the "questions" array must match {{numberOfQuestions}}.
 *   The questions should cover a diverse range of topics from the specified syllabus for each subject and be of a standard reflecting typical exam difficulty.
 *   The output MUST be a JSON object that strictly conforms to the provided output schema. Pay extremely close attention to the "required" fields (subject, question, options, answer) and array lengths (options must have 4 items) detailed above for EVERY question.
-*   Do not, under ANY circumstances, omit any of the four mandatory fields for any of the {{numberOfQuestions}} questions. Ensure every question has a 'subject', 'question', 'options' (an array of exactly 4 strings), and 'answer'.
+*   Do not, under ANY circumstances, omit any of the four mandatory fields for any of the {{numberOfQuestions}} questions. Ensure every question has a 'subject', 'question', 'options' (an array of exactly 4 strings), and 'answer'. IF YOU CANNOT GENERATE THE FULL COUNT, IT IS BETTER TO RETURN AN ERROR OR FEWER, BUT COMPLETE, QUESTIONS THAN AN INCOMPLETE LIST THAT WILL FAIL VALIDATION. (However, the schema requires the full count, so aim for that.)
 `,
 });
 
