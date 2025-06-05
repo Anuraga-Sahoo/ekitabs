@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { BookOpenText, History, Home, PencilRuler, Sparkles, ChevronDown, LogIn, LogOut, UserPlus, UserCircle } from 'lucide-react';
+import { BookOpenText, History, Home, PencilRuler, Sparkles, ChevronDown, LogIn, LogOut, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -25,7 +25,7 @@ interface NavItemConfig {
   isDropdown?: boolean;
   dropdownItems?: DropdownItemConfig[];
   activePaths?: string[];
-  requiresAuth?: boolean; // New property
+  requiresAuth?: boolean;
 }
 
 interface DropdownItemConfig {
@@ -40,8 +40,9 @@ const allNavItems: NavItemConfig[] = [
     label: 'AI Powered Test',
     icon: Sparkles,
     isDropdown: true,
-    activePaths: ['/mock-test', '/practice-test'],
+    activePaths: ['/mock-test', '/practice-test', '/ai-tests'], // Added /ai-tests
     dropdownItems: [
+      { href: '/ai-tests', label: 'Overview', icon: Sparkles }, // Link to the new overview page
       { href: '/mock-test', label: 'Mock Test', icon: PencilRuler },
       { href: '/practice-test', label: 'Practice Test', icon: BookOpenText },
     ],
@@ -54,10 +55,9 @@ export default function Header() {
   const pathname = usePathname();
   const { isLoggedIn, userEmail, isLoading, logout, updateAuthState } = useAuth();
 
-  // This effect is crucial for reflecting login state changes from other tabs or direct cookie manipulation
   useEffect(() => {
     const handleFocus = () => {
-      updateAuthState(); // Re-check cookie state when tab gets focus
+      updateAuthState(); 
     };
     window.addEventListener('focus', handleFocus);
     return () => {
@@ -67,7 +67,7 @@ export default function Header() {
 
 
   const getInitials = (email: string | null | undefined) => {
-    if (!email) return 'U'; // Default User
+    if (!email) return 'U'; 
     return email.charAt(0).toUpperCase();
   };
 
@@ -84,7 +84,7 @@ export default function Header() {
         </Link>
         <nav className="flex items-center space-x-1 sm:space-x-2">
           {visibleNavItems.map((item) => {
-            const isActive = item.href === pathname || (item.activePaths && item.activePaths.includes(pathname));
+            const isActive = item.href === pathname || (item.activePaths && item.activePaths.some(p => pathname.startsWith(p)));
             if (item.isDropdown && item.dropdownItems) {
               return (
                 <DropdownMenu key={item.label}>
@@ -149,7 +149,8 @@ export default function Header() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    {/* <AvatarImage src="/avatars/01.png" alt="@shadcn" /> Could add actual image if available */}
+                    {/* You can add AvatarImage here if you have user profile images */}
+                    {/* <AvatarImage src={userEmail ? `https://source.boringavatars.com/beam/40/${encodeURIComponent(userEmail)}` : undefined} alt={userEmail || "User"} /> */}
                     <AvatarFallback className="bg-primary text-primary-foreground">
                       {getInitials(userEmail)}
                     </AvatarFallback>
@@ -166,9 +167,9 @@ export default function Header() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {/* Add other items like "Profile", "Settings" here if needed */}
-                {/* <DropdownMenuItem>Profile</DropdownMenuItem> */}
-                <DropdownMenuItem onClick={logout}>
+                {/* Future items like "Profile", "Settings" can be added here */}
+                {/* <DropdownMenuItem asChild><Link href="/profile">Profile</Link></DropdownMenuItem> */}
+                <DropdownMenuItem onClick={logout} className="cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
