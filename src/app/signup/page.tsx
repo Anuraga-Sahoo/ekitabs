@@ -55,25 +55,50 @@ export default function SignupPage() {
         body: JSON.stringify({ email: data.email, password: data.password }),
       });
 
-      const result = await response.json();
-
-      if (response.ok) {
-        toast({
-          title: "Signup Successful!",
-          description: "You can now log in with your credentials.",
-        });
-        router.push('/login');
-      } else {
+      if (!response.ok) {
+        let errorText = `Signup failed with status: ${response.status}`;
+        try {
+          const errorResult = await response.json();
+          errorText = errorResult.message || (errorResult.errors ? JSON.stringify(errorResult.errors) : errorText);
+        } catch (jsonError) {
+          // Response was not JSON, try to get plain text
+          try {
+            const textResponse = await response.text();
+            if (textResponse && textResponse.toLowerCase().includes('<html')) {
+              errorText = `Server returned an unexpected HTML response (status ${response.status}). Please check server logs.`;
+            } else if (textResponse) {
+              errorText = `Server error (status ${response.status}): ${textResponse.substring(0, 150)}`;
+            }
+          } catch (textParseError) {
+            // Fallback if can't get text
+          }
+        }
         toast({
           title: "Signup Failed",
-          description: result.message || "An error occurred.",
+          description: errorText,
           variant: "destructive",
         });
+        return; 
       }
+
+      // If response.ok is true, assume success
+      const result = await response.json();
+      toast({
+        title: "Signup Successful!",
+        description: result.message || "You can now log in with your credentials.",
+      });
+      router.push('/login');
+
     } catch (error) {
+      let description = "Could not connect to the server. Please try again.";
+      if (error instanceof TypeError && error.message.toLowerCase().includes('failed to fetch')) {
+        description = "Network error: Failed to fetch. Please check your internet connection and ensure the server is running and correctly configured (e.g., MONGODB_URI in .env).";
+      } else if (error instanceof Error) {
+        description = error.message;
+      }
       toast({
         title: "Error",
-        description: "Could not connect to the server. Please try again.",
+        description: description,
         variant: "destructive",
       });
     } finally {
