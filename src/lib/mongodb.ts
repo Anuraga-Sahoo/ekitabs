@@ -6,9 +6,10 @@ if (!process.env.MONGODB_URI) {
 }
 
 const uri = process.env.MONGODB_URI;
-const options = {
-  tls: true, // Explicitly enable TLS
-};
+// For mongodb+srv URIs, TLS is enabled by default.
+// Explicitly setting tls: true is usually not necessary.
+// Relying on the driver's default behavior for srv URIs.
+const options = {};
 
 let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
