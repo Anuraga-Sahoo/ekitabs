@@ -16,9 +16,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { PlayCircle } from 'lucide-react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
-const MOCK_TEST_DURATION_MINUTES = 180; // 3 hours as per PRD
-const MOCK_TEST_NUM_QUESTIONS = 360; // As per PRD for the full mock test
-const MOCK_TEST_TITLE = "Mock Test (360 Questions)";
+const MOCK_TEST_DURATION_MINUTES = 25; // 50 questions * 0.5 min/question
+const MOCK_TEST_NUM_QUESTIONS = 50; 
+const MOCK_TEST_TITLE = "Mock Test (50 Questions)";
 
 export default function MockTestPage() {
   const [testState, setTestState] = useState<'idle' | 'loading' | 'inProgress' | 'completed'>('idle');
@@ -43,7 +43,7 @@ export default function MockTestPage() {
 
   const startNewTest = async () => {
     setTestState('loading');
-    setCurrentAttemptToUpdateId(null); // Ensure it's a new test, not an update
+    setCurrentAttemptToUpdateId(null); 
     try {
       const aiOutput = await generateMockTest({ numberOfQuestions: MOCK_TEST_NUM_QUESTIONS });
       if (aiOutput && aiOutput.questions.length > 0) {
@@ -78,10 +78,7 @@ export default function MockTestPage() {
           } else {
             description = "Could not save the generated test to the database. Please check your connection and try again.";
           }
-        } else if (error.message.includes("Mock test generation is configured for exactly 50 questions")) {
-          description = "The AI is currently set up for 50-question mock tests. Support for 360 questions is pending an AI flow update. Please try a practice test or check back later.";
-        }
-         else {
+        } else {
           description = `Details: ${error.message}`;
         }
       }
@@ -246,15 +243,13 @@ export default function MockTestPage() {
         <CardHeader>
           <CardTitle className="text-3xl font-bold">Mock Test Challenge</CardTitle>
           <CardDescription className="text-lg">
-            This is a {MOCK_TEST_NUM_QUESTIONS}-MCQ mock test based on Class 11th &amp; 12th syllabus with a {MOCK_TEST_DURATION_MINUTES / 60}-hour time limit.
+            This is a {MOCK_TEST_NUM_QUESTIONS}-MCQ mock test based on Class 11th &amp; 12th syllabus with a {MOCK_TEST_DURATION_MINUTES}-minute time limit.
+            The test includes 12 Physics, 13 Chemistry, and 25 Biology questions.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="mb-6 text-muted-foreground">
             Click the button below to begin. Good luck!
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Note: Full 360-question generation is under development. Current AI may provide a shorter test.
           </p>
         </CardContent>
         <CardFooter>
