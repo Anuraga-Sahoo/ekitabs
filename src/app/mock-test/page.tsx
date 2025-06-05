@@ -16,9 +16,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { PlayCircle } from 'lucide-react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
-const MOCK_TEST_DURATION_MINUTES = 50; 
-const MOCK_TEST_NUM_QUESTIONS = 50; 
-const MOCK_TEST_TITLE = "Mock Test (50 Questions)";
+const MOCK_TEST_DURATION_MINUTES = 180; // 3 hours as per PRD
+const MOCK_TEST_NUM_QUESTIONS = 360; // As per PRD for the full mock test
+const MOCK_TEST_TITLE = "Mock Test (360 Questions)";
 
 export default function MockTestPage() {
   const [testState, setTestState] = useState<'idle' | 'loading' | 'inProgress' | 'completed'>('idle');
@@ -33,7 +33,7 @@ export default function MockTestPage() {
 
   const transformAiQuestions = (aiOutput: GenerateMockTestOutput): AppQuestion[] => {
     return aiOutput.questions.map((q, index) => ({
-      id: `mock-q-${Date.now()}-${index + 1}`, 
+      id: `mock-q-${Date.now()}-${index + 1}`,
       subject: q.subject,
       questionText: q.question,
       options: q.options,
@@ -45,11 +45,14 @@ export default function MockTestPage() {
     setTestState('loading');
     setCurrentAttemptToUpdateId(null); // Ensure it's a new test, not an update
     try {
+      // NOTE: The generateMockTest flow is currently hardcoded to 50 questions.
+      // Passing MOCK_TEST_NUM_QUESTIONS (360) here will likely cause an error
+      // in the AI flow until that flow is updated to support 360 questions.
       const aiOutput = await generateMockTest({ numberOfQuestions: MOCK_TEST_NUM_QUESTIONS });
       if (aiOutput && aiOutput.questions.length > 0) {
         const transformedQuestions = transformAiQuestions(aiOutput);
         const newOriginalQuizId = generateQuizId('mock');
-        
+
         const quizToStore: StoredQuiz = {
           id: newOriginalQuizId,
           testType: 'mock',
@@ -57,7 +60,7 @@ export default function MockTestPage() {
           createdAt: new Date().toISOString(),
           title: MOCK_TEST_TITLE,
         };
-        await saveGeneratedQuiz(quizToStore); 
+        await saveGeneratedQuiz(quizToStore);
 
         setQuestions(transformedQuestions);
         setCurrentOriginalQuizId(newOriginalQuizId);
@@ -74,7 +77,10 @@ export default function MockTestPage() {
           description = "The AI model is currently overloaded. Please try again in a few moments.";
         } else if (error.message.toLowerCase().includes("failed to save quiz to database")) {
           description = "Could not save the generated test to the database. Please check your connection and try again.";
-        } else {
+        } else if (error.message.includes("Mock test generation is configured for exactly 50 questions")) {
+          description = "The AI is currently set up for 50-question mock tests. Support for 360 questions is pending an AI flow update. Please try a practice test or check back later.";
+        }
+         else {
           description = `Details: ${error.message}`;
         }
       }
@@ -93,13 +99,17 @@ export default function MockTestPage() {
     try {
       const storedQuiz = await getGeneratedQuiz(quizId);
       if (storedQuiz && storedQuiz.testType === 'mock') {
+        // For a retake, we want to ensure the number of questions and duration match what was originally stored,
+        // or what the current page expects for a *new* test if it's just retaking old questions for practice.
+        // For now, we'll use the current page's duration/title for consistency if it's an *updated* attempt,
+        // but ideally, this info would also be stored with the StoredQuiz if it can vary.
         const questionsForRetake = storedQuiz.questions.map(q => ({ ...q, userAnswer: undefined }));
         setQuestions(questionsForRetake);
         setCurrentOriginalQuizId(storedQuiz.id);
         setTestState('inProgress');
       } else {
         toast({ title: "Error", description: "Could not find the test to retake or it's not a mock test.", variant: "destructive" });
-        router.replace('/mock-test'); 
+        router.replace('/mock-test');
         setTestState('idle');
       }
     } catch (error) {
@@ -119,7 +129,7 @@ export default function MockTestPage() {
   useEffect(() => {
     const retakeQuizId = searchParams.get('retakeQuizId');
     const attemptIdToUpdate = searchParams.get('attemptToUpdateId');
-    if (retakeQuizId && testState === 'idle') { 
+    if (retakeQuizId && testState === 'idle') {
       startRetakeTest(retakeQuizId, attemptIdToUpdate);
     }
   }, [searchParams, startRetakeTest, testState]);
@@ -152,31 +162,33 @@ export default function MockTestPage() {
     });
 
     const totalScore = (correct * 4) - (incorrect * 1);
-    const maxScore = questions.length * 4;
+    // Max score should be based on the actual number of questions presented in this attempt.
+    const maxScore = questions.length * 4; 
 
     const score: TestScore = { correct, incorrect, unanswered, totalScore, maxScore };
+    // Use MOCK_TEST_TITLE which reflects the intended 360 questions
     const resultData: TestResultItem = {
       testAttemptId: isUpdate ? currentAttemptToUpdateId! : `mock-attempt-${Date.now()}-${Math.random().toString(36).substring(2,7)}`,
-      originalQuizId: currentOriginalQuizId, 
+      originalQuizId: currentOriginalQuizId,
       testType: 'mock',
-      testTitle: MOCK_TEST_TITLE,
+      testTitle: MOCK_TEST_TITLE, // Use the title reflecting 360 questions
       dateCompleted: new Date().toISOString(),
       score,
       questions: answeredQuestions,
       timeTakenSeconds,
     };
-    
+
     try {
       if (isUpdate) {
         await updateTestResult(currentAttemptToUpdateId!, resultData);
         toast({ title: "Test Retake Submitted!", description: "Your mock test history has been updated." });
       } else {
-        await saveTestResult(resultData); 
+        await saveTestResult(resultData);
         toast({ title: "Test Submitted!", description: "Your mock test results are ready." });
       }
       setTestResult(resultData);
       setTestState('completed');
-      
+
       if (isUpdate) {
         setCurrentAttemptToUpdateId(null);
         const newSearchParams = new URLSearchParams(searchParams.toString());
@@ -192,15 +204,15 @@ export default function MockTestPage() {
       let shouldShowResults = !isUpdate; // By default, don't show results if update fails catastrophically
 
       if (error instanceof Error) {
-        toastDescription = error.message; 
-        if (error.message.startsWith("Test history entry with ID")) { 
+        toastDescription = error.message;
+        if (error.message.startsWith("Test history entry with ID")) {
              toastDescription = "The original test entry to update was not found. It may have been deleted. Your current attempt was not saved.";
-             shouldShowResults = false; 
+             shouldShowResults = false;
         } else if (isUpdate) { // If it's an update but not the "not found" error, still show results
             shouldShowResults = true;
         }
       }
-      
+
       toast({ title: toastTitle, description: toastDescription, variant: "destructive" });
 
       if (shouldShowResults) {
@@ -208,8 +220,8 @@ export default function MockTestPage() {
         setTestState('completed');
       } else {
         setCurrentAttemptToUpdateId(null);
-        setTestState('idle'); 
-        router.push('/test-history'); 
+        setTestState('idle');
+        router.push('/test-history');
       }
     }
   };
@@ -221,8 +233,8 @@ export default function MockTestPage() {
   if (testState === 'inProgress' && currentOriginalQuizId) {
     return (
       <TestInProgress
-        questions={questions}
-        durationMinutes={MOCK_TEST_DURATION_MINUTES}
+        questions={questions} // Pass the actual questions, could be 50 or eventually 360
+        durationMinutes={MOCK_TEST_DURATION_MINUTES} // 3 hours
         onTestSubmit={handleSubmitTest}
         testType="mock"
         originalQuizId={currentOriginalQuizId}
@@ -240,12 +252,15 @@ export default function MockTestPage() {
         <CardHeader>
           <CardTitle className="text-3xl font-bold">Mock Test Challenge</CardTitle>
           <CardDescription className="text-lg">
-            This is a {MOCK_TEST_NUM_QUESTIONS}-MCQ mock test based on Class 11th &amp; 12th syllabus with a {MOCK_TEST_DURATION_MINUTES}-minute time limit.
+            This is a {MOCK_TEST_NUM_QUESTIONS}-MCQ mock test based on Class 11th &amp; 12th syllabus with a {MOCK_TEST_DURATION_MINUTES / 60}-hour time limit.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="mb-6 text-muted-foreground">
             Click the button below to begin. Good luck!
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Note: Full 360-question generation is under development. Current AI may provide a shorter test.
           </p>
         </CardContent>
         <CardFooter>
