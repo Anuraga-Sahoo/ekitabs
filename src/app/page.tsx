@@ -1,11 +1,12 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Sparkles, ArrowRight } from 'lucide-react';
+import { Sparkles, ArrowRight, LibraryBig, Presentation, RadioTower, BarChart3, Languages } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import TestimonialCarousel from '@/components/TestimonialCarousel';
+import { cn } from '@/lib/utils';
 
 // Updated testimonial data for NEET
 const testimonialsData = [
@@ -41,6 +42,41 @@ const testimonialsData = [
     avatar: "https://placehold.co/80x80.png",
     dataAiHint: "determined student"
   }
+];
+
+const featureCardsData = [
+  {
+    icon: Presentation,
+    iconColor: "text-green-600 dark:text-green-400",
+    iconBgColor: "bg-green-100 dark:bg-green-500/20",
+    cardBgColor: "bg-green-50 dark:bg-green-900/10",
+    title: "Learn from the Best",
+    description: "Learn from the masters of the subject, in the most engaging yet simplified ways.",
+  },
+  {
+    icon: RadioTower,
+    iconColor: "text-pink-600 dark:text-pink-400",
+    iconBgColor: "bg-pink-100 dark:bg-pink-500/20",
+    cardBgColor: "bg-pink-50 dark:bg-pink-900/10",
+    title: "Live Tests for Real Exam Experience",
+    description: "Feel the thrill of a real exam. Improve your time & pressure management skills.",
+  },
+  {
+    icon: BarChart3,
+    iconColor: "text-yellow-600 dark:text-yellow-400",
+    iconBgColor: "bg-yellow-100 dark:bg-yellow-500/20",
+    cardBgColor: "bg-yellow-50 dark:bg-yellow-900/10",
+    title: "Detailed Score Analysis",
+    description: "Get a detailed breakdown of your strengths & weaknesses and discover insights to improve your score.",
+  },
+  {
+    icon: Languages,
+    iconColor: "text-purple-600 dark:text-purple-400",
+    iconBgColor: "bg-purple-100 dark:bg-purple-500/20",
+    cardBgColor: "bg-purple-50 dark:bg-purple-900/10",
+    title: "Multilingual Support",
+    description: "Learn in the language you are most comfortable with. Platform designed for diverse users.",
+  },
 ];
 
 
@@ -160,8 +196,59 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
+      {/* New "Why TestPrep AI?" Section */}
       <section className="py-16 bg-background">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="grid lg:grid-cols-2 gap-12 xl:gap-20 items-center">
+            {/* Left Column */}
+            <div className="space-y-7 text-center lg:text-left">
+              <div className="flex justify-center lg:justify-start">
+                <div className="inline-block p-2 bg-primary/10 rounded-xl mb-3">
+                  <LibraryBig className="w-10 h-10 text-primary" />
+                </div>
+              </div>
+              <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-[2.8rem] lg:leading-tight">
+                Why TestPrep AI?
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0">
+                With 1.8+ Crore Students and one of the best selection rates in India amongst online learning platforms, you can surely rely on us to excel.
+              </p>
+              <Button 
+                size="lg" 
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 py-3 text-base sm:text-lg w-full sm:w-auto" 
+                asChild
+              >
+                <Link href="/ai-tests">
+                  Get Started For Free
+                </Link>
+              </Button>
+            </div>
+
+            {/* Right Column - Feature Cards Grid */}
+            <div className="grid sm:grid-cols-2 gap-5">
+              {featureCardsData.map((card, index) => {
+                const IconComponent = card.icon;
+                return (
+                  <Card key={index} className={cn("shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-xl overflow-hidden", card.cardBgColor)}>
+                    <CardContent className="p-6 flex flex-col items-start space-y-3">
+                      <div className={cn("p-3.5 rounded-lg inline-flex items-center justify-center mb-2", card.iconBgColor)}>
+                        <IconComponent className={cn("h-7 w-7", card.iconColor)} />
+                      </div>
+                      <h3 className="text-lg font-semibold text-foreground leading-snug">{card.title}</h3>
+                      <p className="text-[0.9rem] text-muted-foreground leading-relaxed">
+                        {card.description}
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-16 bg-secondary/50"> {/* Changed from bg-background to bg-secondary/50 */}
         <div className="container mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
@@ -177,3 +264,4 @@ export default function Home() {
     </>
   );
 }
+
