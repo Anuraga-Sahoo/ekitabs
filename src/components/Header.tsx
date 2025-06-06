@@ -82,58 +82,83 @@ export default function Header() {
   
   const displayName = userName || userEmail || "User";
 
-  const renderNavItem = (item: NavItemConfig, isMobile: boolean = false) => {
+  const renderNavItem = (item: NavItemConfig, isMobile: boolean = false): JSX.Element => {
     const isActive = item.href === pathname || (item.activePaths && item.activePaths.some(p => pathname.startsWith(p)));
     const commonButtonClass = "text-sm font-medium w-full justify-start md:w-auto md:justify-center";
     const activeClass = 'text-primary font-semibold bg-muted';
     const inactiveClass = 'text-foreground hover:bg-muted/50 hover:text-primary';
 
     if (item.isDropdown && item.dropdownItems) {
-      return (
-        <DropdownMenu key={item.label}>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant={'ghost'}
-              className={cn(commonButtonClass, isActive ? activeClass : inactiveClass)}
-            >
-              <item.icon className="h-4 w-4" />
-              <span className={isMobile ? "ml-2" : "sm:inline ml-2"}>{item.label}</span>
-              <ChevronDown className="h-4 w-4 ml-auto md:ml-1 sm:ml-2 opacity-70" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            {item.dropdownItems.map((dropdownItem) => {
-              const linkElement = (
-                <Link 
-                  href={dropdownItem.href} 
-                  className={cn(
-                    "flex items-center gap-2 w-full",
-                    pathname === dropdownItem.href ? "bg-muted text-primary font-medium" : ""
-                  )}
-                >
-                  <dropdownItem.icon className="h-4 w-4" />
-                  <span>{dropdownItem.label}</span>
-                </Link>
-              );
-              if (isMobile) {
-                return (
-                  <DropdownMenuItem key={dropdownItem.label} asChild>
-                    <SheetClose asChild>
-                      {linkElement}
-                    </SheetClose>
-                  </DropdownMenuItem>
-                );
-              } else {
-                return (
-                  <DropdownMenuItem key={dropdownItem.label} asChild>
-                    {linkElement}
-                  </DropdownMenuItem>
-                );
-              }
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
+      const dropdownTriggerButton = (
+        <Button
+          variant={'ghost'}
+          className={cn(commonButtonClass, isActive ? activeClass : inactiveClass)}
+        >
+          <item.icon className="h-4 w-4" />
+          <span className={isMobile ? "ml-2" : "sm:inline ml-2"}>{item.label}</span>
+          <ChevronDown className="h-4 w-4 ml-auto md:ml-1 sm:ml-2 opacity-70" />
+        </Button>
       );
+
+      const dropdownMenuItems = item.dropdownItems.map((dropdownItem) => {
+        const linkElement = (
+          <Link 
+            href={dropdownItem.href} 
+            className={cn(
+              "flex items-center gap-2 w-full",
+              pathname === dropdownItem.href ? "bg-muted text-primary font-medium" : ""
+            )}
+          >
+            <dropdownItem.icon className="h-4 w-4" />
+            <span>{dropdownItem.label}</span>
+          </Link>
+        );
+        if (isMobile) {
+          return (
+            <DropdownMenuItem key={dropdownItem.href} asChild>
+              <SheetClose asChild>
+                {linkElement}
+              </SheetClose>
+            </DropdownMenuItem>
+          );
+        } else {
+          return (
+            <DropdownMenuItem key={dropdownItem.href} asChild>
+              {linkElement}
+            </DropdownMenuItem>
+          );
+        }
+      });
+
+      if (isMobile) {
+        // For mobile, wrap DropdownMenuTrigger in SheetClose if needed, or handle closing differently.
+        // Here, we assume dropdown items themselves handle sheet closing via SheetClose asChild.
+        return (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                   {/* The button that triggers the dropdown */}
+                   {/* For mobile, this button itself might be a SheetClose target if it's the last action before showing content */}
+                   {/* Or, rely on items inside DropdownMenuContent to have SheetClose */}
+                   {/* Let's assume the trigger itself doesn't need SheetClose, items do. */}
+                   {dropdownTriggerButton}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                    {dropdownMenuItems}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        );
+      } else {
+         return (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    {dropdownTriggerButton}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                    {dropdownMenuItems}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        );
+      }
     }
 
     // For non-dropdown items
@@ -151,10 +176,8 @@ export default function Header() {
     );
 
     if (isMobile) {
-      // Key is applied by the .map iterator on <SheetClose>
       return <SheetClose asChild>{navButtonElement}</SheetClose>;
     } else {
-      // Key is applied by the .map iterator on the returned Button
       return navButtonElement;
     }
   };
@@ -186,7 +209,6 @@ export default function Header() {
   return (
     <header className="bg-background text-foreground shadow-md sticky top-0 z-50 border-b">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-        {/* Main Logo/Link - No SheetClose here */}
         <Link 
             href="/" 
             className="text-2xl font-bold tracking-tight flex items-center gap-2 text-primary" 
@@ -199,7 +221,9 @@ export default function Header() {
         </Link>
         
         <nav className="hidden md:flex items-center space-x-1 sm:space-x-2">
-            {visibleNavItems.map(item => renderNavItem(item, false))} {/* Key will be on the root element returned by renderNavItem */}
+            {visibleNavItems.map(item => 
+                React.cloneElement(renderNavItem(item, false), { key: item.href || item.label })
+            )}
             {isLoggedIn ? (
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -266,7 +290,6 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent side="left" className="w-full max-w-xs p-0 flex flex-col">
                 <div className="p-4 border-b">
-                    {/* Correct use of SheetClose for the logo inside the mobile menu */}
                     <SheetClose asChild> 
                         <Link href="/" className="text-xl font-bold tracking-tight flex items-center gap-2 text-primary">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
@@ -278,9 +301,6 @@ export default function Header() {
                 </div>
                 <nav className="flex flex-col space-y-1 p-4 flex-grow">
                   {visibleNavItems.map(item => {
-                    // Ensure a key is on the root element returned by renderNavItem when mapped
-                    // renderNavItem itself returns an element which will be the child of the .map implicitly.
-                    // The key is applied to the element returned by renderNavItem in the map directly.
                     const navElement = renderNavItem(item, true);
                     return React.cloneElement(navElement, { key: item.href || item.label });
                   })}
@@ -331,3 +351,4 @@ export default function Header() {
     </header>
   );
 }
+
