@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from '@/hooks/useAuth';
-import { useEffect, useState } from 'react';
+import * as React from 'react'; // Changed import
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 
@@ -58,13 +58,13 @@ const allNavItems: NavItemConfig[] = [
 export default function Header() {
   const pathname = usePathname();
   const { isLoggedIn, userEmail, userName, isLoading, logout, updateAuthState } = useAuth();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false); // Changed to React.useState
 
-  useEffect(() => {
+  React.useEffect(() => { // Changed to React.useEffect
     updateAuthState();
   }, [updateAuthState, pathname]);
 
-  useEffect(() => {
+  React.useEffect(() => { // Changed to React.useEffect
     const handleFocus = () => {
       updateAuthState(); 
     };
@@ -166,10 +166,10 @@ export default function Header() {
     <header className="bg-background text-foreground shadow-md sticky top-0 z-50 border-b">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <Link href="/" className="text-2xl font-bold tracking-tight flex items-center gap-2 text-primary" onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)}>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 15.08L6 12.58l1.41-1.41L10.5 15.25l6.09-6.09L18 10.58l-7.5 7.5zM12 4c1.93 0 3.5 1.57 3.5 3.5S13.93 11 12 11s-3.5-1.57-3.5-3.5S10.07 4 12 4z"/>
-          </svg>
-          TestPrep AI
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 15.08L6 12.58l1.41-1.41L10.5 15.25l6.09-6.09L18 10.58l-7.5 7.5zM12 4c1.93 0 3.5 1.57 3.5 3.5S13.93 11 12 11s-3.5-1.57-3.5-3.5S10.07 4 12 4z"/>
+            </svg>
+            TestPrep AI
         </Link>
         
         <nav className="hidden md:flex items-center space-x-1 sm:space-x-2">
@@ -239,16 +239,16 @@ export default function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-full max-w-xs p-0 flex flex-col">
-              <div className="p-4 border-b">
-                <SheetClose asChild>
-                    <Link href="/" className="text-xl font-bold tracking-tight flex items-center gap-2 text-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 15.08L6 12.58l1.41-1.41L10.5 15.25l6.09-6.09L18 10.58l-7.5 7.5zM12 4c1.93 0 3.5 1.57 3.5 3.5S13.93 11 12 11s-3.5-1.57-3.5-3.5S10.07 4 12 4z"/>
-                    </svg>
-                    TestPrep AI
-                    </Link>
-                </SheetClose>
-              </div>
+                <div className="p-4 border-b">
+                    <SheetClose asChild>
+                        <Link href="/" className="text-xl font-bold tracking-tight flex items-center gap-2 text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 15.08L6 12.58l1.41-1.41L10.5 15.25l6.09-6.09L18 10.58l-7.5 7.5zM12 4c1.93 0 3.5 1.57 3.5 3.5S13.93 11 12 11s-3.5-1.57-3.5-3.5S10.07 4 12 4z"/>
+                        </svg>
+                        TestPrep AI
+                        </Link>
+                    </SheetClose>
+                </div>
                 <nav className="flex flex-col space-y-1 p-4 flex-grow">
                   {visibleNavItems.map(item => renderNavItem(item, true))}
                 </nav>
@@ -298,5 +298,3 @@ export default function Header() {
     </header>
   );
 }
-
-    
