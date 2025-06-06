@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react"; // Added useCallback
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,7 +23,7 @@ import { Separator } from "@/components/ui/separator";
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  email: z.string().email(), // Will be read-only
+  email: z.string().email(), 
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -44,7 +44,6 @@ interface UserProfileData {
   email: string;
 }
 
-// Helper to set a cookie client-side
 function setCookie(name: string, value: string, days: number = 7) {
   if (typeof document === 'undefined') return;
   let expires = "";
@@ -60,7 +59,7 @@ function setCookie(name: string, value: string, days: number = 7) {
 
 export default function ProfilePage() {
   const { toast } = useToast();
-  const { userEmail, userName, updateAuthState, isLoading: authLoading } = useAuth();
+  const { updateAuthState, isLoading: authLoading } = useAuth(); // Removed userEmail, userName as we fetch fresh
   const [isFetchingProfile, setIsFetchingProfile] = useState(true);
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
@@ -75,30 +74,35 @@ export default function ProfilePage() {
     defaultValues: { currentPassword: "", newPassword: "", confirmNewPassword: "" },
   });
 
-  useEffect(() => {
-    async function fetchProfile() {
-      if (authLoading) return; // Wait for auth state to be resolved
+  const resetProfileForm = profileForm.reset; // Store reset method
 
-      setIsFetchingProfile(true);
-      try {
-        const response = await fetch('/api/user/profile');
-        if (!response.ok) {
-          throw new Error('Failed to fetch profile');
-        }
-        const data: UserProfileData = await response.json();
-        profileForm.reset({ name: data.name, email: data.email });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Could not load your profile information. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsFetchingProfile(false);
+  // Fetch profile data
+  const fetchProfileData = useCallback(async () => {
+    if (authLoading) return; 
+
+    setIsFetchingProfile(true);
+    try {
+      const response = await fetch('/api/user/profile');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch profile details.'}));
+        throw new Error(errorData.message || 'Failed to fetch profile');
       }
+      const data: UserProfileData = await response.json();
+      resetProfileForm({ name: data.name, email: data.email }); // Use stored reset
+    } catch (error) {
+      toast({
+        title: "Error Loading Profile",
+        description: error instanceof Error ? error.message : "Could not load your profile information. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsFetchingProfile(false);
     }
-    fetchProfile();
-  }, [toast, profileForm, authLoading]);
+  }, [authLoading, resetProfileForm, toast]); // Updated dependencies
+
+  useEffect(() => {
+    fetchProfileData();
+  }, [fetchProfileData]); // useEffect depends on the stable fetchProfileData callback
 
   async function onProfileSubmit(data: ProfileFormValues) {
     setIsUpdatingProfile(true);
@@ -116,7 +120,6 @@ export default function ProfilePage() {
         title: "Profile Updated",
         description: "Your profile information has been successfully updated.",
       });
-      // Update client-side cookie and auth state for name
       setCookie('userName', data.name);
       updateAuthState(); 
     } catch (error) {
@@ -177,7 +180,6 @@ export default function ProfilePage() {
           <CardDescription>Manage your account information and password.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
-          {/* Profile Information Form */}
           <Form {...profileForm}>
             <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
               <FormField
@@ -216,7 +218,6 @@ export default function ProfilePage() {
 
           <Separator />
 
-          {/* Change Password Form */}
           <div>
             <h3 className="text-xl font-semibold mb-4 text-foreground">Change Password</h3>
             <Form {...passwordForm}>

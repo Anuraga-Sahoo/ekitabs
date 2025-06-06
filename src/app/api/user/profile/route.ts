@@ -3,13 +3,13 @@ import { type NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { comparePassword, hashPassword } from '@/lib/password';
 import { z } from 'zod';
-import { Collection, Db, MongoClient } from 'mongodb';
+import { Collection, Db, MongoClient, ObjectId } from 'mongodb'; // Import ObjectId
 import { cookies } from 'next/headers';
 import * as jose from 'jose';
 import { AUTH_TOKEN_NAME } from '@/lib/authCookies';
 
 interface UserDocument {
-  _id: any;
+  _id: ObjectId; // Use ObjectId type
   name: string;
   email: string;
   passwordHash: string;
@@ -55,7 +55,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const usersCollection = await getUsersCollection();
-    const user = await usersCollection.findOne({ _id: new MongoClient().db().bsonOptions.ObjectID(userId) });
+    // Use new ObjectId() to convert the string userId from token to ObjectId for MongoDB query
+    if (!ObjectId.isValid(userId)) {
+        return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });
+    }
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
 
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
@@ -74,14 +78,13 @@ const updateProfileSchema = z.object({
   currentPassword: z.string().min(8).optional(),
   newPassword: z.string().min(8).optional(),
 }).refine(data => {
-  // If newPassword is provided, currentPassword must also be provided
   if (data.newPassword && !data.currentPassword) {
     return false;
   }
   return true;
 }, {
   message: "Current password is required to set a new password.",
-  path: ["currentPassword"], // Path to show error on
+  path: ["currentPassword"], 
 });
 
 
@@ -104,7 +107,11 @@ export async function PUT(request: NextRequest) {
 
     const { name, currentPassword, newPassword } = validationResult.data;
     const usersCollection = await getUsersCollection();
-    const userObjectId = new MongoClient().db().bsonOptions.ObjectID(userId);
+    
+    if (!ObjectId.isValid(userId)) {
+        return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });
+    }
+    const userObjectId = new ObjectId(userId);
 
     const user = await usersCollection.findOne({ _id: userObjectId });
     if (!user) {
@@ -126,7 +133,6 @@ export async function PUT(request: NextRequest) {
       }
       updates.passwordHash = await hashPassword(newPassword);
     } else if (newPassword && !currentPassword) {
-        // This case should be caught by Zod refine, but as a safeguard:
         return NextResponse.json({ message: "Current password is required to set a new password." }, { status: 400 });
     }
 
@@ -139,12 +145,10 @@ export async function PUT(request: NextRequest) {
     
     const responsePayload: { message: string; updatedName?: string } = { message: "Profile updated successfully." };
 
-    // If name was updated, we need to update the JWT and cookies
     if (nameUpdated && updates.name) {
         responsePayload.updatedName = updates.name;
         if (!process.env.JWT_SECRET) {
             console.error("JWT_SECRET is not defined for re-issuing token.");
-            // Proceed without re-issuing token, client will need to re-login for name update in header eventually
         } else {
             const cookieStore = cookies();
             const tokenPayload = { 
@@ -156,17 +160,15 @@ export async function PUT(request: NextRequest) {
             
             const cookieOptionsBase = {
                 secure: process.env.NODE_ENV !== 'development',
-                maxAge: 60 * 60 * 24 * 7, // 1 week
+                maxAge: 60 * 60 * 24 * 7, 
                 path: '/',
                 sameSite: 'lax' as const,
             };
 
             cookieStore.set(AUTH_TOKEN_NAME, newToken, { ...cookieOptionsBase, httpOnly: true });
             cookieStore.set('userName', updates.name, cookieOptionsBase);
-            // userEmail and isLoggedIn cookies remain the same
         }
     }
-
 
     return NextResponse.json(responsePayload, { status: 200 });
 
@@ -176,4 +178,3 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ message: "Internal server error", error: errorMessage }, { status: 500 });
   }
 }
-

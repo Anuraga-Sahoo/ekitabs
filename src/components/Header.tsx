@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from '@/hooks/useAuth';
-import * as React from 'react'; // Changed import
+import * as React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 
@@ -58,13 +58,13 @@ const allNavItems: NavItemConfig[] = [
 export default function Header() {
   const pathname = usePathname();
   const { isLoggedIn, userEmail, userName, isLoading, logout, updateAuthState } = useAuth();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false); // Changed to React.useState
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
-  React.useEffect(() => { // Changed to React.useEffect
+  React.useEffect(() => {
     updateAuthState();
   }, [updateAuthState, pathname]);
 
-  React.useEffect(() => { // Changed to React.useEffect
+  React.useEffect(() => {
     const handleFocus = () => {
       updateAuthState(); 
     };
@@ -87,10 +87,6 @@ export default function Header() {
     const commonButtonClass = "text-sm font-medium w-full justify-start md:w-auto md:justify-center";
     const activeClass = 'text-primary font-semibold bg-muted';
     const inactiveClass = 'text-foreground hover:bg-muted/50 hover:text-primary';
-    // For mobile, SheetClose should wrap the item to close the sheet on navigation
-    const WrapperComponent = isMobile ? SheetClose : React.Fragment;
-    const wrapperProps = isMobile ? { asChild: true } : {};
-
 
     if (item.isDropdown && item.dropdownItems) {
       return (
@@ -106,38 +102,63 @@ export default function Header() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            {item.dropdownItems.map((dropdownItem) => (
-              <DropdownMenuItem key={dropdownItem.label} asChild>
-                <WrapperComponent {...wrapperProps}>
-                  <Link href={dropdownItem.href} className={cn(
+            {item.dropdownItems.map((dropdownItem) => {
+              const linkElement = (
+                <Link 
+                  href={dropdownItem.href} 
+                  className={cn(
                     "flex items-center gap-2 w-full",
                     pathname === dropdownItem.href ? "bg-muted text-primary font-medium" : ""
-                  )}>
-                    <dropdownItem.icon className="h-4 w-4" />
-                    <span>{dropdownItem.label}</span>
-                  </Link>
-                </WrapperComponent>
-              </DropdownMenuItem>
-            ))}
+                  )}
+                >
+                  <dropdownItem.icon className="h-4 w-4" />
+                  <span>{dropdownItem.label}</span>
+                </Link>
+              );
+              if (isMobile) {
+                return (
+                  <DropdownMenuItem key={dropdownItem.label} asChild>
+                    <SheetClose asChild>
+                      {linkElement}
+                    </SheetClose>
+                  </DropdownMenuItem>
+                );
+              } else {
+                return (
+                  <DropdownMenuItem key={dropdownItem.label} asChild>
+                    {linkElement}
+                  </DropdownMenuItem>
+                );
+              }
+            })}
           </DropdownMenuContent>
         </DropdownMenu>
       );
     }
-    return (
-      <WrapperComponent key={item.label} {...wrapperProps}>
-        <Button
-          variant={'ghost'}
-          asChild
-          className={cn(commonButtonClass, isActive ? activeClass : inactiveClass)}
-        >
-          <Link href={item.href || '#'} className="flex items-center gap-2">
-            <item.icon className="h-4 w-4" />
-            <span className={isMobile ? "ml-2" : "sm:inline ml-2"}>{item.label}</span>
-          </Link>
-        </Button>
-      </WrapperComponent>
+
+    // For non-dropdown items
+    const navButtonElement = (
+      <Button
+        variant={'ghost'}
+        asChild
+        className={cn(commonButtonClass, isActive ? activeClass : inactiveClass)}
+      >
+        <Link href={item.href || '#'} className="flex items-center gap-2">
+          <item.icon className="h-4 w-4" />
+          <span className={isMobile ? "ml-2" : "sm:inline ml-2"}>{item.label}</span>
+        </Link>
+      </Button>
     );
+
+    if (isMobile) {
+      // Key is applied by the .map iterator on <SheetClose>
+      return <SheetClose asChild>{navButtonElement}</SheetClose>;
+    } else {
+      // Key is applied by the .map iterator on the returned Button
+      return navButtonElement;
+    }
   };
+
 
   if (isLoading) {
     return (
@@ -165,7 +186,12 @@ export default function Header() {
   return (
     <header className="bg-background text-foreground shadow-md sticky top-0 z-50 border-b">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-        <Link href="/" className="text-2xl font-bold tracking-tight flex items-center gap-2 text-primary" onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)}>
+        {/* Main Logo/Link - No SheetClose here */}
+        <Link 
+            href="/" 
+            className="text-2xl font-bold tracking-tight flex items-center gap-2 text-primary" 
+            onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)}
+        >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 15.08L6 12.58l1.41-1.41L10.5 15.25l6.09-6.09L18 10.58l-7.5 7.5zM12 4c1.93 0 3.5 1.57 3.5 3.5S13.93 11 12 11s-3.5-1.57-3.5-3.5S10.07 4 12 4z"/>
             </svg>
@@ -173,7 +199,7 @@ export default function Header() {
         </Link>
         
         <nav className="hidden md:flex items-center space-x-1 sm:space-x-2">
-            {visibleNavItems.map(item => renderNavItem(item))}
+            {visibleNavItems.map(item => renderNavItem(item, false))} {/* Key will be on the root element returned by renderNavItem */}
             {isLoggedIn ? (
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -240,7 +266,8 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent side="left" className="w-full max-w-xs p-0 flex flex-col">
                 <div className="p-4 border-b">
-                    <SheetClose asChild>
+                    {/* Correct use of SheetClose for the logo inside the mobile menu */}
+                    <SheetClose asChild> 
                         <Link href="/" className="text-xl font-bold tracking-tight flex items-center gap-2 text-primary">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 15.08L6 12.58l1.41-1.41L10.5 15.25l6.09-6.09L18 10.58l-7.5 7.5zM12 4c1.93 0 3.5 1.57 3.5 3.5S13.93 11 12 11s-3.5-1.57-3.5-3.5S10.07 4 12 4z"/>
@@ -250,7 +277,13 @@ export default function Header() {
                     </SheetClose>
                 </div>
                 <nav className="flex flex-col space-y-1 p-4 flex-grow">
-                  {visibleNavItems.map(item => renderNavItem(item, true))}
+                  {visibleNavItems.map(item => {
+                    // Ensure a key is on the root element returned by renderNavItem when mapped
+                    // renderNavItem itself returns an element which will be the child of the .map implicitly.
+                    // The key is applied to the element returned by renderNavItem in the map directly.
+                    const navElement = renderNavItem(item, true);
+                    return React.cloneElement(navElement, { key: item.href || item.label });
+                  })}
                 </nav>
                 <div className="mt-auto p-4 border-t">
                   {isLoggedIn ? (
