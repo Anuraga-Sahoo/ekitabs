@@ -139,7 +139,7 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
   return (
     <div className="min-h-screen bg-background">
       {/* Top Banner */}
-      <div className="bg-[hsl(var(--brand-blue))] text-white py-6 md:py-8 text-center shadow-md">
+      <div className="bg-primary text-primary-foreground py-6 md:py-8 text-center shadow-md">
         <h1 className="text-3xl md:text-4xl font-bold">Good Try!</h1>
         <p className="text-lg md:text-xl mt-1">Keep Practicing, Keep Improving.</p>
       </div>
@@ -181,7 +181,7 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
                 {questions.map((q, index) => {
                   const mark = getMark(q);
                   let bgColor = 'bg-muted hover:bg-muted/80'; // Unanswered
-                  if (mark === 4) bgColor = 'bg-[hsl(var(--brand-green))] hover:bg-[hsl(var(--brand-green))]/90 text-white'; // Correct
+                  if (mark === 4) bgColor = 'bg-primary hover:bg-primary/90 text-primary-foreground'; // Correct
                   else if (mark === -1) bgColor = 'bg-red-500 hover:bg-red-600 text-white'; // Incorrect
                   
                   return (
@@ -205,7 +205,7 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
               <Button onClick={handleViewSolution} variant="outline" size="lg" className="w-full">
                 <Eye className="mr-2 h-5 w-5" /> View Solution
               </Button>
-              <Button onClick={handleStartNextQuiz} size="lg" className="w-full bg-[hsl(var(--brand-green))] hover:bg-[hsl(var(--brand-green))]/90 text-primary-foreground">
+              <Button onClick={handleStartNextQuiz} size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
                 Start Next Quiz
               </Button>
               <Button onClick={handleRetakeTest} variant="outline" size="lg" className="w-full">

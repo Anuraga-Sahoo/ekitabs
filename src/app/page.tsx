@@ -1,11 +1,11 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Sparkles, ArrowRight, Archive, Target, PencilRuler } from 'lucide-react';
+import { Sparkles, ArrowRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import TestimonialCarousel from '@/components/TestimonialCarousel'; // Import the new component
+import TestimonialCarousel from '@/components/TestimonialCarousel';
 
 // Updated testimonial data for NEET
 const testimonialsData = [
@@ -50,7 +50,7 @@ export default function Home() {
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] py-12 bg-background text-center">
         <section className="w-full container px-4 md:px-6">
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
-            One Destination for <span className="text-[hsl(var(--brand-green))]">Complete Exam</span> Preparation
+            One Destination for <span className="text-primary">Complete Exam</span> Preparation
           </h1>
           <div className="mt-6 flex justify-center items-center space-x-2 sm:space-x-4 text-base sm:text-lg text-muted-foreground">
             <span>Learn</span> <span className="text-muted-foreground/50">&bull;</span>
@@ -61,7 +61,7 @@ export default function Home() {
           <div className="mt-12 flex justify-center">
             <Button
               size="lg"
-              className="bg-[hsl(var(--brand-green))] hover:bg-[hsl(var(--brand-green))]/90 text-white font-semibold px-10 py-7 text-lg w-full sm:w-auto"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-10 py-7 text-lg w-full sm:w-auto"
               asChild
             >
               <Link href="/ai-tests">
