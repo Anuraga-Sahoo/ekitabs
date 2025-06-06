@@ -23,7 +23,9 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">View and update your profile information.</p>
-                <Button variant="outline" disabled>View Profile (Soon)</Button>
+                <Button asChild>
+                  <Link href="/profile">View Profile</Link>
+                </Button>
               </CardContent>
             </Card>
             <Card className="hover:shadow-xl transition-shadow">

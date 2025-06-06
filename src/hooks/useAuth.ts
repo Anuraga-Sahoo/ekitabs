@@ -5,7 +5,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from './use-toast';
 
-// Helper to get a cookie by name (client-side only)
 function getCookie(name: string): string | null {
   if (typeof document === 'undefined') return null;
   const value = `; ${document.cookie}`;
@@ -17,40 +16,42 @@ function getCookie(name: string): string | null {
 export function useAuth() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // To manage initial check
+  const [userName, setUserName] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
 
   const updateAuthState = useCallback(() => {
     const loggedInCookie = getCookie('isLoggedIn');
     const emailCookie = getCookie('userEmail');
+    const nameCookie = getCookie('userName');
     const newIsLoggedIn = loggedInCookie === 'true';
+
     setIsLoggedIn(newIsLoggedIn);
     setUserEmail(newIsLoggedIn ? emailCookie : null);
+    setUserName(newIsLoggedIn ? nameCookie : null);
     setIsLoading(false);
   }, []);
 
   useEffect(() => {
     updateAuthState();
-    // Listen for storage events that might indicate login/logout from other tabs
     window.addEventListener('storage', updateAuthState);
     return () => {
       window.removeEventListener('storage', updateAuthState);
     };
   }, [updateAuthState]);
 
-
   const logout = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch('/api/auth/logout', { method: 'POST' });
       if (response.ok) {
-        // Cookies are cleared by the API route. Client-side state update:
         setIsLoggedIn(false);
         setUserEmail(null);
+        setUserName(null);
         toast({ title: "Logged Out", description: "You have been successfully logged out." });
-        router.push('/'); // Redirect to home page
-        router.refresh(); // Refresh to update server-side state
+        router.push('/'); 
+        router.refresh(); 
       } else {
         toast({ title: "Logout Failed", description: "Could not log out. Please try again.", variant: "destructive" });
       }
@@ -61,16 +62,13 @@ export function useAuth() {
     }
   }, [router, toast]);
 
-  // This effect handles router.refresh() on login state change from external source (e.g. another tab)
-  // It should ideally be done more gracefully, perhaps by re-validating data instead of full refresh
-  // if `isLoggedIn` changes not due to direct action in this tab.
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         const currentLoggedInCookie = getCookie('isLoggedIn') === 'true';
         if (currentLoggedInCookie !== isLoggedIn && !isLoading) {
-          updateAuthState(); // Update auth state first
-          router.refresh(); // Then refresh
+          updateAuthState();
+          router.refresh();
         }
       }
     };
@@ -80,7 +78,5 @@ export function useAuth() {
     };
   }, [isLoggedIn, isLoading, router, updateAuthState]);
 
-
-  return { isLoggedIn, userEmail, isLoading, logout, updateAuthState };
+  return { isLoggedIn, userEmail, userName, isLoading, logout, updateAuthState };
 }
-

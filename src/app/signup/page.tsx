@@ -22,6 +22,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 const signupFormSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
   password: z.string().min(8, { message: "Password must be at least 8 characters." }),
   confirmPassword: z.string(),
@@ -40,6 +41,7 @@ export default function SignupPage() {
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupFormSchema),
     defaultValues: {
+      name: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -52,7 +54,7 @@ export default function SignupPage() {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: data.email, password: data.password }),
+        body: JSON.stringify({ name: data.name, email: data.email, password: data.password }),
       });
 
       if (!response.ok) {
@@ -61,7 +63,6 @@ export default function SignupPage() {
           const errorResult = await response.json();
           errorText = errorResult.message || (errorResult.errors ? JSON.stringify(errorResult.errors) : errorText);
         } catch (jsonError) {
-          // Response was not JSON, try to get plain text
           try {
             const textResponse = await response.text();
             if (textResponse && textResponse.toLowerCase().includes('<html')) {
@@ -81,7 +82,6 @@ export default function SignupPage() {
         return;
       }
 
-      // If response.ok is true, assume success
       const result = await response.json();
       toast({
         title: "Signup Successful!",
@@ -119,6 +119,19 @@ export default function SignupPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="John Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="email"

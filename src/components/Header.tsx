@@ -18,7 +18,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 
 
 interface NavItemConfig {
@@ -57,11 +57,10 @@ const allNavItems: NavItemConfig[] = [
 
 export default function Header() {
   const pathname = usePathname();
-  const { isLoggedIn, userEmail, isLoading, logout, updateAuthState } = useAuth();
+  const { isLoggedIn, userEmail, userName, isLoading, logout, updateAuthState } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    // Call on mount and when pathname changes to ensure auth state is fresh
     updateAuthState();
   }, [updateAuthState, pathname]);
 
@@ -75,19 +74,20 @@ export default function Header() {
     };
   }, [updateAuthState]);
 
-
-  const getInitials = (email: string | null | undefined) => {
-    if (!email) return 'U'; 
-    return email.charAt(0).toUpperCase();
+  const getInitials = (name: string | null | undefined, email: string | null | undefined) => {
+    if (name) return name.charAt(0).toUpperCase();
+    if (email) return email.charAt(0).toUpperCase();
+    return 'U';
   };
   
-  const visibleNavItems = allNavItems.filter(item => !item.requiresAuth || isLoggedIn);
+  const displayName = userName || userEmail || "User";
 
   const renderNavItem = (item: NavItemConfig, isMobile: boolean = false) => {
     const isActive = item.href === pathname || (item.activePaths && item.activePaths.some(p => pathname.startsWith(p)));
     const commonButtonClass = "text-sm font-medium w-full justify-start md:w-auto md:justify-center";
     const activeClass = 'text-primary font-semibold bg-muted';
     const inactiveClass = 'text-foreground hover:bg-muted/50 hover:text-primary';
+    const CompToRender = isMobile ? SheetClose : 'div'; // SheetClose for mobile to close on nav
 
     if (item.isDropdown && item.dropdownItems) {
       return (
@@ -98,7 +98,7 @@ export default function Header() {
               className={cn(commonButtonClass, isActive ? activeClass : inactiveClass)}
             >
               <item.icon className="h-4 w-4" />
-              <span className={isMobile ? "ml-2" : "hidden sm:inline ml-2"}>{item.label}</span>
+              <span className={isMobile ? "ml-2" : "sm:inline ml-2"}>{item.label}</span>
               <ChevronDown className="h-4 w-4 ml-auto md:ml-1 sm:ml-2 opacity-70" />
             </Button>
           </DropdownMenuTrigger>
@@ -119,88 +119,115 @@ export default function Header() {
       );
     }
     return (
-      <Button
-        key={item.label}
-        variant={'ghost'}
-        asChild
-        className={cn(commonButtonClass, isActive ? activeClass : inactiveClass)}
-        onClick={() => isMobile && setIsMobileMenuOpen(false)}
-      >
-        <Link href={item.href || '#'} className="flex items-center gap-2">
-          <item.icon className="h-4 w-4" />
-          <span className={isMobile ? "ml-2" : "hidden sm:inline ml-2"}>{item.label}</span>
-        </Link>
-      </Button>
+      <CompToRender key={item.label} asChild={isMobile}>
+        <Button
+          variant={'ghost'}
+          asChild
+          className={cn(commonButtonClass, isActive ? activeClass : inactiveClass)}
+          onClick={() => isMobile && setIsMobileMenuOpen(false)}
+        >
+          <Link href={item.href || '#'} className="flex items-center gap-2">
+            <item.icon className="h-4 w-4" />
+            <span className={isMobile ? "ml-2" : "sm:inline ml-2"}>{item.label}</span>
+          </Link>
+        </Button>
+      </CompToRender>
     );
   };
 
+  if (isLoading) {
+    return (
+      <header className="bg-background text-foreground shadow-md sticky top-0 z-50 border-b">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+          <Link href="/" className="text-2xl font-bold tracking-tight flex items-center gap-2 text-primary">
+            <Skeleton className="w-8 h-8 rounded-full" />
+            <Skeleton className="h-7 w-28" />
+          </Link>
+          <div className="hidden md:flex items-center space-x-2">
+              <Skeleton className="h-8 w-16 rounded" />
+              <Skeleton className="h-8 w-20 rounded" />
+              <Skeleton className="h-8 w-8 rounded-full" />
+          </div>
+          <div className="md:hidden">
+            <Skeleton className="h-8 w-8 rounded" />
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  const visibleNavItems = allNavItems.filter(item => !item.requiresAuth || isLoggedIn);
 
   return (
     <header className="bg-background text-foreground shadow-md sticky top-0 z-50 border-b">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-        <Link href="/" className="text-2xl font-bold tracking-tight flex items-center gap-2 text-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 15.08L6 12.58l1.41-1.41L10.5 15.25l6.09-6.09L18 10.58l-7.5 7.5zM12 4c1.93 0 3.5 1.57 3.5 3.5S13.93 11 12 11s-3.5-1.57-3.5-3.5S10.07 4 12 4z"/>
-          </svg>
-          TestPrep AI
-        </Link>
+        <SheetClose asChild={isMobileMenuOpen}>
+            <Link href="/" className="text-2xl font-bold tracking-tight flex items-center gap-2 text-primary" onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)}>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 15.08L6 12.58l1.41-1.41L10.5 15.25l6.09-6.09L18 10.58l-7.5 7.5zM12 4c1.93 0 3.5 1.57 3.5 3.5S13.93 11 12 11s-3.5-1.57-3.5-3.5S10.07 4 12 4z"/>
+            </svg>
+            TestPrep AI
+            </Link>
+        </SheetClose>
         
-        {isLoading ? (
-            <div className="hidden md:flex items-center space-x-2">
-                <Skeleton className="h-8 w-16 rounded" />
-                <Skeleton className="h-8 w-20 rounded" />
-                <Skeleton className="h-8 w-8 rounded-full" />
-            </div>
-        ) : (
-            <nav className="hidden md:flex items-center space-x-1 sm:space-x-2">
-              {visibleNavItems.map(item => renderNavItem(item))}
-              {isLoggedIn ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary text-primary-foreground">
-                          {getInitials(userEmail)}
-                        </AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56" align="end" forceMount>
-                    <DropdownMenuLabel className="font-normal">
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">My Account</p>
-                        <p className="text-xs leading-none text-muted-foreground truncate">
-                          {userEmail || "User"}
-                        </p>
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={logout} className="cursor-pointer">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log out</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <>
-                  <Button variant="ghost" asChild className="text-sm font-medium text-foreground hover:bg-muted/50 hover:text-primary">
-                    <Link href="/login" className="flex items-center gap-2">
-                      <LogIn className="h-4 w-4" />
-                      <span className="hidden sm:inline">Login</span>
+        <nav className="hidden md:flex items-center space-x-1 sm:space-x-2">
+            {visibleNavItems.map(item => renderNavItem(item))}
+            {isLoggedIn ? (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                        {getInitials(userName, userEmail)}
+                    </AvatarFallback>
+                    </Avatar>
+                </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none truncate">{displayName}</p>
+                    {userEmail && <p className="text-xs leading-none text-muted-foreground truncate">{userEmail}</p>}
+                    </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                 <DropdownMenuItem asChild>
+                    <Link href="/dashboard" className="flex items-center gap-2 w-full cursor-pointer">
+                        <LayoutDashboard className="h-4 w-4" />
+                        <span>Dashboard</span>
                     </Link>
-                  </Button>
-                  <Button variant="default" asChild size="sm" className="text-sm">
-                    <Link href="/signup" className="flex items-center gap-1">
-                       <UserPlus className="h-4 w-4" />
-                      <span className="hidden sm:inline">Sign Up</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Link href="/profile" className="flex items-center gap-2 w-full cursor-pointer">
+                        <UserPlus className="h-4 w-4" /> {/* Using UserPlus as generic profile icon */}
+                        <span>Profile</span>
                     </Link>
-                  </Button>
-                </>
-              )}
-            </nav>
-        )}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout} className="cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            ) : (
+            <>
+                <Button variant="ghost" asChild className="text-sm font-medium text-foreground hover:bg-muted/50 hover:text-primary">
+                <Link href="/login" className="flex items-center gap-2">
+                    <LogIn className="h-4 w-4" />
+                    <span className="sm:inline">Login</span>
+                </Link>
+                </Button>
+                <Button variant="default" asChild size="sm" className="text-sm">
+                <Link href="/signup" className="flex items-center gap-1">
+                    <UserPlus className="h-4 w-4" />
+                    <span className="sm:inline">Sign Up</span>
+                </Link>
+                </Button>
+            </>
+            )}
+        </nav>
 
-        {/* Mobile Navigation Trigger */}
         <div className="md:hidden">
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
@@ -209,58 +236,59 @@ export default function Header() {
                 <span className="sr-only">Open menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-full max-w-xs p-0">
+            <SheetContent side="left" className="w-full max-w-xs p-0 flex flex-col">
               <div className="p-4 border-b">
-                <Link href="/" className="text-xl font-bold tracking-tight flex items-center gap-2 text-primary" onClick={() => setIsMobileMenuOpen(false)}>
-                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
-                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 15.08L6 12.58l1.41-1.41L10.5 15.25l6.09-6.09L18 10.58l-7.5 7.5zM12 4c1.93 0 3.5 1.57 3.5 3.5S13.93 11 12 11s-3.5-1.57-3.5-3.5S10.07 4 12 4z"/>
-                   </svg>
-                   TestPrep AI
-                 </Link>
+                <SheetClose asChild>
+                    <Link href="/" className="text-xl font-bold tracking-tight flex items-center gap-2 text-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 15.08L6 12.58l1.41-1.41L10.5 15.25l6.09-6.09L18 10.58l-7.5 7.5zM12 4c1.93 0 3.5 1.57 3.5 3.5S13.93 11 12 11s-3.5-1.57-3.5-3.5S10.07 4 12 4z"/>
+                    </svg>
+                    TestPrep AI
+                    </Link>
+                </SheetClose>
               </div>
-              {isLoading ? (
-                <div className="p-4 space-y-3">
-                  <Skeleton className="h-8 w-3/4 rounded" />
-                  <Skeleton className="h-8 w-1/2 rounded" />
-                  <Skeleton className="h-8 w-2/3 rounded" />
-                </div>
-              ) : (
-                <nav className="flex flex-col space-y-2 p-4">
+                <nav className="flex flex-col space-y-1 p-4 flex-grow">
                   {visibleNavItems.map(item => renderNavItem(item, true))}
-                  <DropdownMenuSeparator />
+                </nav>
+                <div className="mt-auto p-4 border-t">
                   {isLoggedIn ? (
                     <>
-                      <DropdownMenuLabel className="font-normal px-2 pt-2">
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-medium leading-none">My Account</p>
-                          <p className="text-xs leading-none text-muted-foreground truncate">
-                            {userEmail || "User"}
-                          </p>
-                        </div>
-                      </DropdownMenuLabel>
-                       <Button variant="ghost" onClick={() => { logout(); setIsMobileMenuOpen(false); }} className="w-full justify-start text-sm font-medium">
-                          <LogOut className="mr-2 h-4 w-4" />
-                          <span>Log out</span>
-                      </Button>
+                      <SheetClose asChild>
+                        <Link href="/profile" className="w-full">
+                            <Button variant="ghost" className="w-full justify-start text-sm font-medium mb-2">
+                                <UserPlus className="mr-2 h-4 w-4" />
+                                <span>Profile ({displayName})</span>
+                            </Button>
+                        </Link>
+                      </SheetClose>
+                      <SheetClose asChild>
+                        <Button variant="outline" onClick={logout} className="w-full justify-start text-sm font-medium">
+                            <LogOut className="mr-2 h-4 w-4" />
+                            <span>Log out</span>
+                        </Button>
+                      </SheetClose>
                     </>
                   ) : (
                     <>
-                      <Button variant="ghost" asChild className="w-full justify-start text-sm font-medium" onClick={() => setIsMobileMenuOpen(false)}>
-                        <Link href="/login" className="flex items-center gap-2">
-                          <LogIn className="h-4 w-4" />
-                          <span>Login</span>
+                      <SheetClose asChild>
+                        <Link href="/login" className="w-full">
+                            <Button variant="ghost" className="w-full justify-start text-sm font-medium mb-2">
+                                <LogIn className="h-4 w-4 mr-2" />
+                                <span>Login</span>
+                            </Button>
                         </Link>
-                      </Button>
-                      <Button variant="default" asChild size="sm" className="w-full justify-start text-sm" onClick={() => setIsMobileMenuOpen(false)}>
-                        <Link href="/signup" className="flex items-center gap-1">
-                           <UserPlus className="h-4 w-4" />
-                          <span>Sign Up</span>
+                      </SheetClose>
+                      <SheetClose asChild>
+                        <Link href="/signup" className="w-full">
+                            <Button variant="default" size="sm" className="w-full justify-start text-sm">
+                                <UserPlus className="h-4 w-4 mr-2" />
+                                <span>Sign Up</span>
+                            </Button>
                         </Link>
-                      </Button>
+                      </SheetClose>
                     </>
                   )}
-                </nav>
-              )}
+                </div>
             </SheetContent>
           </Sheet>
         </div>
@@ -268,4 +296,3 @@ export default function Header() {
     </header>
   );
 }
-

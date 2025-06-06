@@ -8,7 +8,6 @@ import { AUTH_TOKEN_NAME } from '@/lib/authCookies';
 import { Collection, Db, MongoClient } from 'mongodb';
 import { cookies } from 'next/headers';
 
-
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(1, { message: "Password cannot be empty." }),
@@ -16,6 +15,7 @@ const loginSchema = z.object({
 
 interface UserDocument {
   _id: any;
+  name: string;
   email: string;
   passwordHash: string;
   createdAt: Date;
@@ -59,11 +59,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Internal server configuration error." }, { status: 500 });
     }
 
-    const token = jwt.sign(
-      { userId: user._id.toString(), email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' } // Token expires in 7 days
-    );
+    const tokenPayload = { 
+      userId: user._id.toString(), 
+      email: user.email,
+      name: user.name // Add name to JWT payload
+    };
+    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '7d' });
     
     const cookieStore = cookies();
     const cookieOptionsBase = {
@@ -78,12 +79,14 @@ export async function POST(request: NextRequest) {
         httpOnly: true,
     });
     
-    // Client-readable cookies
     cookieStore.set('isLoggedIn', 'true', cookieOptionsBase);
     cookieStore.set('userEmail', user.email, cookieOptionsBase);
+    cookieStore.set('userName', user.name, cookieOptionsBase); // Set userName cookie
 
-
-    return NextResponse.json({ message: "Logged in successfully.", user: { id: user._id.toString(), email: user.email } }, { status: 200 });
+    return NextResponse.json({ 
+        message: "Logged in successfully.", 
+        user: { id: user._id.toString(), email: user.email, name: user.name } 
+    }, { status: 200 });
 
   } catch (error) {
     console.error('Login error:', error);
@@ -91,4 +94,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Internal server error", error: errorMessage }, { status: 500 });
   }
 }
-

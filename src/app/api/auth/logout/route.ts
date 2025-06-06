@@ -19,7 +19,8 @@ export async function POST(request: NextRequest) {
     });
     
     cookieStore.set('isLoggedIn', '', cookieOptionsBase); 
-    cookieStore.set('userEmail', '', cookieOptionsBase); // Clear userEmail cookie
+    cookieStore.set('userEmail', '', cookieOptionsBase);
+    cookieStore.set('userName', '', cookieOptionsBase); // Clear userName cookie
 
     return NextResponse.json({ message: "Logged out successfully." }, { status: 200 });
   } catch (error) {

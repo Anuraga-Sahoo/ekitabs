@@ -6,12 +6,14 @@ import { z } from 'zod';
 import { Collection, Db, MongoClient } from 'mongodb';
 
 const signupSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(8, { message: "Password must be at least 8 characters long." }),
 });
 
 interface UserDocument {
   _id?: any;
+  name: string;
   email: string;
   passwordHash: string;
   createdAt: Date;
@@ -29,13 +31,13 @@ export async function POST(request: NextRequest) {
     const validationResult = signupSchema.safeParse(body);
 
     if (!validationResult.success) {
-      return NextResponse.json({ 
-        message: "Validation failed", 
-        errors: validationResult.error.flatten().fieldErrors 
+      return NextResponse.json({
+        message: "Validation failed",
+        errors: validationResult.error.flatten().fieldErrors
       }, { status: 400 });
     }
 
-    const { email, password } = validationResult.data;
+    const { name, email, password } = validationResult.data;
 
     const usersCollection = await getUsersCollection();
     const existingUser = await usersCollection.findOne({ email: email.toLowerCase() });
@@ -47,6 +49,7 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hashPassword(password);
 
     const newUser: UserDocument = {
+      name,
       email: email.toLowerCase(),
       passwordHash,
       createdAt: new Date(),
