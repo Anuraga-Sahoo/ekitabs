@@ -87,7 +87,10 @@ export default function Header() {
     const commonButtonClass = "text-sm font-medium w-full justify-start md:w-auto md:justify-center";
     const activeClass = 'text-primary font-semibold bg-muted';
     const inactiveClass = 'text-foreground hover:bg-muted/50 hover:text-primary';
-    const CompToRender = isMobile ? SheetClose : 'div'; // SheetClose for mobile to close on nav
+    // For mobile, SheetClose should wrap the item to close the sheet on navigation
+    const WrapperComponent = isMobile ? SheetClose : React.Fragment;
+    const wrapperProps = isMobile ? { asChild: true } : {};
+
 
     if (item.isDropdown && item.dropdownItems) {
       return (
@@ -104,14 +107,16 @@ export default function Header() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             {item.dropdownItems.map((dropdownItem) => (
-              <DropdownMenuItem key={dropdownItem.label} asChild onClick={() => isMobile && setIsMobileMenuOpen(false)}>
-                <Link href={dropdownItem.href} className={cn(
-                  "flex items-center gap-2 w-full",
-                  pathname === dropdownItem.href ? "bg-muted text-primary font-medium" : ""
-                )}>
-                  <dropdownItem.icon className="h-4 w-4" />
-                  <span>{dropdownItem.label}</span>
-                </Link>
+              <DropdownMenuItem key={dropdownItem.label} asChild>
+                <WrapperComponent {...wrapperProps}>
+                  <Link href={dropdownItem.href} className={cn(
+                    "flex items-center gap-2 w-full",
+                    pathname === dropdownItem.href ? "bg-muted text-primary font-medium" : ""
+                  )}>
+                    <dropdownItem.icon className="h-4 w-4" />
+                    <span>{dropdownItem.label}</span>
+                  </Link>
+                </WrapperComponent>
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
@@ -119,19 +124,18 @@ export default function Header() {
       );
     }
     return (
-      <CompToRender key={item.label} asChild={isMobile}>
+      <WrapperComponent key={item.label} {...wrapperProps}>
         <Button
           variant={'ghost'}
           asChild
           className={cn(commonButtonClass, isActive ? activeClass : inactiveClass)}
-          onClick={() => isMobile && setIsMobileMenuOpen(false)}
         >
           <Link href={item.href || '#'} className="flex items-center gap-2">
             <item.icon className="h-4 w-4" />
             <span className={isMobile ? "ml-2" : "sm:inline ml-2"}>{item.label}</span>
           </Link>
         </Button>
-      </CompToRender>
+      </WrapperComponent>
     );
   };
 
@@ -161,14 +165,12 @@ export default function Header() {
   return (
     <header className="bg-background text-foreground shadow-md sticky top-0 z-50 border-b">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-        <SheetClose asChild={isMobileMenuOpen}>
-            <Link href="/" className="text-2xl font-bold tracking-tight flex items-center gap-2 text-primary" onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)}>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 15.08L6 12.58l1.41-1.41L10.5 15.25l6.09-6.09L18 10.58l-7.5 7.5zM12 4c1.93 0 3.5 1.57 3.5 3.5S13.93 11 12 11s-3.5-1.57-3.5-3.5S10.07 4 12 4z"/>
-            </svg>
-            TestPrep AI
-            </Link>
-        </SheetClose>
+        <Link href="/" className="text-2xl font-bold tracking-tight flex items-center gap-2 text-primary" onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)}>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 15.08L6 12.58l1.41-1.41L10.5 15.25l6.09-6.09L18 10.58l-7.5 7.5zM12 4c1.93 0 3.5 1.57 3.5 3.5S13.93 11 12 11s-3.5-1.57-3.5-3.5S10.07 4 12 4z"/>
+          </svg>
+          TestPrep AI
+        </Link>
         
         <nav className="hidden md:flex items-center space-x-1 sm:space-x-2">
             {visibleNavItems.map(item => renderNavItem(item))}
@@ -199,7 +201,7 @@ export default function Header() {
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                     <Link href="/profile" className="flex items-center gap-2 w-full cursor-pointer">
-                        <UserPlus className="h-4 w-4" /> {/* Using UserPlus as generic profile icon */}
+                        <UserPlus className="h-4 w-4" />
                         <span>Profile</span>
                     </Link>
                 </DropdownMenuItem>
@@ -296,3 +298,5 @@ export default function Header() {
     </header>
   );
 }
+
+    
