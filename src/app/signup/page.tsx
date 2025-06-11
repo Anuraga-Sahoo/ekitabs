@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -39,6 +38,21 @@ const otpSchema = z.object({
 
 type OtpFormValues = z.infer<typeof otpSchema>;
 
+// Helper to parse response
+async function parseResponse(response: Response) {
+  const contentType = response.headers.get('content-type') || '';
+  const text = await response.text();
+  
+  if (contentType.includes('application/json')) {
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { message: text };
+    }
+  }
+  return { message: text };
+}
+
 export default function SignupPage() {
   const { toast } = useToast();
   const router = useRouter();
@@ -46,7 +60,6 @@ export default function SignupPage() {
   const [formStep, setFormStep] = useState<'details' | 'otp'>('details');
   const [activationToken, setActivationToken] = useState<string | null>(null);
   const [userEmailForOtp, setUserEmailForOtp] = useState<string>("");
-
 
   const detailsForm = useForm<SignupDetailsFormValues>({
     resolver: zodResolver(signupDetailsSchema),
@@ -68,13 +81,13 @@ export default function SignupPage() {
   async function onRequestOtp(data: SignupDetailsFormValues) {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/signup', { // This is now the "request OTP" endpoint
+      const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: data.name, email: data.email, password: data.password }),
       });
 
-      const result = await response.json();
+      const result = await parseResponse(response);
 
       if (!response.ok) {
         toast({
@@ -114,7 +127,7 @@ export default function SignupPage() {
         body: JSON.stringify({ activationToken, otp: data.otp }),
       });
 
-      const result = await response.json();
+      const result = await parseResponse(response);
 
       if (!response.ok) {
         toast({
@@ -122,11 +135,12 @@ export default function SignupPage() {
           description: result.message || `Error: ${response.status}`,
           variant: "destructive",
         });
-        // If OTP expired or token is invalid, reset to details form
-        if (result.message && (result.message.toLowerCase().includes("expired") || result.message.toLowerCase().includes("invalid activation token"))) {
+        // If OTP expired or token is invalid
+        if (result.message && (result.message.toLowerCase().includes("expired") || 
+            result.message.toLowerCase().includes("invalid"))) {
             setFormStep('details'); 
-            setActivationToken(null); // Clear token
-            detailsForm.reset(); // Reset details form for fresh input
+            setActivationToken(null);
+            detailsForm.reset();
         }
         return;
       }
@@ -146,14 +160,23 @@ export default function SignupPage() {
 
   function handleFetchError(error: any, contextTitle: string) {
     let description = "Could not connect to the server. Please try again.";
-    if (error instanceof TypeError && error.message.toLowerCase().includes('failed to fetch')) {
-      description = "Network error: Failed to fetch. Please check your internet connection and ensure the server is running.";
-    } else if (error instanceof Error) {
-      description = error.message;
+    
+    if (error instanceof Error) {
+      // Handle HTML responses
+      if (error.message.includes("<!DOCTYPE html>")) {
+        description = "Server returned unexpected response. Please try again later.";
+      } 
+      else if (error.message.toLowerCase().includes('failed to fetch')) {
+        description = "Network error: Please check your internet connection.";
+      }
+      else {
+        description = error.message;
+      }
     }
+    
     toast({
       title: contextTitle,
-      description: description,
+      description,
       variant: "destructive",
     });
   }
@@ -264,7 +287,16 @@ export default function SignupPage() {
                   </Button>
                 </form>
               </Form>
-              <Button variant="link" onClick={() => { setFormStep('details'); setActivationToken(null); otpForm.reset(); detailsForm.reset(); }} className="mt-4 p-0 h-auto">
+              <Button 
+                variant="link" 
+                onClick={() => { 
+                  setFormStep('details'); 
+                  setActivationToken(null); 
+                  otpForm.reset(); 
+                  detailsForm.reset(); 
+                }} 
+                className="mt-4 p-0 h-auto"
+              >
                 Change email or details?
               </Button>
             </CardContent>

@@ -40,6 +40,28 @@ async function getUsersCollection(): Promise<Collection<UserDocument>> {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!process.env.JWT_SECRET) {
+      console.error("CRITICAL: JWT_SECRET is not defined in /api/auth/verify-otp.");
+      return NextResponse.json(
+        { message: "Internal server configuration error: JWT_SECRET missing." },
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    if (!process.env.MONGODB_URI) {
+      console.error("CRITICAL: MONGODB_URI is not defined in /api/auth/verify-otp.");
+      return NextResponse.json(
+        { message: "Internal server configuration error: MONGODB_URI missing." },
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!request.body) {
+      return NextResponse.json(
+        { message: "Request body is empty" },
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const body = await request.json();
     const validationResult = verifyOtpSchema.safeParse(body);
 
@@ -47,96 +69,118 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         message: "Validation failed",
         errors: validationResult.error.flatten().fieldErrors
-      }, { status: 400 });
+      }, {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     const { activationToken, otp: userSubmittedOtp } = validationResult.data;
 
-    if (!process.env.JWT_SECRET) {
-      console.error("JWT_SECRET for activation token is not defined.");
-      return NextResponse.json({ message: "Internal server configuration error." }, { status: 500 });
-    }
-
     let decodedPayload: ActivationTokenPayload;
     try {
       decodedPayload = jwt.verify(activationToken, process.env.JWT_SECRET) as ActivationTokenPayload;
-    } catch (err) {
-      console.error("JWT verification error details:", err); 
+    } catch (err: any) {
+      console.error('JWT Verification Error in verify-otp:', err);
       if (err instanceof jwt.TokenExpiredError) {
-        return NextResponse.json({ message: "OTP has expired. Please request a new one." }, { status: 400 });
+        return NextResponse.json(
+          { message: "OTP has expired. Please request a new one." },
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
       }
-      return NextResponse.json({ message: "Invalid or malformed activation token. Please try signing up again.", errorObject: JSON.stringify(err) }, { status: 400 });
+      return NextResponse.json(
+        { message: "Invalid or malformed activation token. Please try signing up again." },
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
-    if (!decodedPayload || typeof decodedPayload.user !== 'object' || decodedPayload.user === null || typeof decodedPayload.otp !== 'string') {
-        console.error("Decoded JWT payload is malformed (missing user object or otp):", decodedPayload);
-        return NextResponse.json({ message: "Invalid activation token payload structure." }, { status: 400 });
-    }
-    if (typeof decodedPayload.user.name !== 'string' ||
+    if (!decodedPayload || !decodedPayload.user ||
+        typeof decodedPayload.user.name !== 'string' ||
         typeof decodedPayload.user.email !== 'string' ||
         typeof decodedPayload.user.passwordHash !== 'string') {
-        console.error("Decoded JWT user details are malformed:", decodedPayload.user);
-        return NextResponse.json({ message: "Invalid user details in activation token payload." }, { status: 400 });
+      console.error("Invalid token structure in verify-otp. Decoded payload:", decodedPayload);
+      return NextResponse.json(
+        { message: "Invalid token data structure." },
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
-
     if (userSubmittedOtp !== decodedPayload.otp) {
-      return NextResponse.json({ message: "Invalid OTP. Please try again." }, { status: 400 });
+      return NextResponse.json(
+        { message: "Invalid OTP. Please try again." },
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
     const { user: userDetails } = decodedPayload;
     const usersCollection = await getUsersCollection();
 
-    const existingVerifiedUser = await usersCollection.findOne({ email: userDetails.email.toLowerCase(), isVerified: true });
+    const existingVerifiedUser = await usersCollection.findOne({
+      email: userDetails.email.toLowerCase(), // Email is already lowercased in token
+      isVerified: true
+    });
+
     if (existingVerifiedUser) {
-      return NextResponse.json({ message: "User with this email is already verified." }, { status: 409 });
+      return NextResponse.json(
+        { message: "User with this email is already verified." },
+        { status: 409, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
     const result = await usersCollection.updateOne(
-      { email: userDetails.email.toLowerCase() }, 
+      { email: userDetails.email.toLowerCase() },
       {
         $set: {
           name: userDetails.name,
           passwordHash: userDetails.passwordHash,
           isVerified: true,
-          createdAt: new Date(), 
         },
-        $setOnInsert: { 
-             email: userDetails.email.toLowerCase()
+        $setOnInsert: { // These fields are set only if a new document is inserted
+          email: userDetails.email.toLowerCase(),
+          createdAt: new Date(),
         }
       },
       { upsert: true }
     );
 
-    if (result.upsertedId || result.matchedCount > 0) {
-      return NextResponse.json({ message: "Email verified and account created successfully." }, { status: 201 });
+    if (result.upsertedId || result.modifiedCount > 0 || result.matchedCount > 0) {
+      return NextResponse.json(
+        { message: "Email verified and account created successfully." },
+        { status: 201, headers: { 'Content-Type': 'application/json' } }
+      );
     } else {
-      console.error("User creation/update via upsert failed unexpectedly for email:", userDetails.email, "Mongo UpdateResult:", result);
-      return NextResponse.json({ message: "Failed to create or update user account after verification due to an unexpected database issue." }, { status: 500 });
+      // This case should ideally not be reached if upsert is true and there's no error.
+      // If it is, it might indicate an unexpected database state or issue.
+      console.error("User account creation/verification failed despite upsert. Result:", result);
+      return NextResponse.json(
+        { message: "Failed to create or verify user account. Please try again." },
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
   } catch (error: any) {
-    console.error('Verify OTP error details:', error); 
-
-    let errorMessage = "An unknown error occurred during OTP verification.";
-    let errorStack = null;
-
-    if (error && typeof error === 'object') {
-        if ('message' in error && typeof error.message === 'string') {
-            errorMessage = error.message;
-        }
-        if ('stack' in error && typeof error.stack === 'string') {
-            errorStack = error.stack;
-            console.error("Stack trace:", errorStack);
-        }
-    } else if (typeof error === 'string') {
-        errorMessage = error;
+    console.error('--- Verify OTP Top Level Error ---');
+    console.error('Error Name:', error.name);
+    console.error('Error Message:', error.message);
+    if (error.stack) {
+        console.error('Stack Trace:', error.stack);
+    }
+    // Log the full error object if it's complex
+    if (typeof error === 'object' && error !== null) {
+        console.error('Full Error Object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     }
 
-    return NextResponse.json({
-        message: "Internal server error during OTP verification. Please check server logs for details.",
-        error: errorMessage,
-        ...(process.env.NODE_ENV !== 'production' && errorStack ? { stack: errorStack } : {})
-    }, { status: 500 });
+
+    let errorMessageForClient = "Internal server error during OTP verification.";
+    // Avoid sending potentially sensitive stack traces or detailed db errors to client in prod
+    if (process.env.NODE_ENV !== 'production' && error instanceof Error) {
+        errorMessageForClient = error.message;
+    }
+
+
+    return NextResponse.json(
+      { message: "An unexpected error occurred during OTP verification.", errorDetails: errorMessageForClient },
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 }

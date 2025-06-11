@@ -1,4 +1,3 @@
-
 'use server';
 
 import { createTransport } from 'nodemailer';
@@ -8,21 +7,34 @@ interface MailData {
   otp: string;
 }
 
+// HTML escaping function
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export async function sendOtpEmail(email: string, subject: string, data: MailData): Promise<void> {
   if (!process.env.GMAIL || !process.env.GMAIL_PASSWORD) {
-    console.error('Gmail credentials (GMAIL, GMAIL_PASSWORD) are not configured in .env');
-    throw new Error('Email service is not configured. Please contact support.');
+    throw new Error('Email service is not configured.');
   }
 
   const transport = createTransport({
     host: "smtp.gmail.com",
     port: 465,
-    secure: true, // use SSL
+    secure: true,
     auth: {
       user: process.env.GMAIL,
       pass: process.env.GMAIL_PASSWORD,
     }
   });
+
+  // Escape user inputs
+  const safeName = escapeHtml(data.name);
+  const safeOtp = escapeHtml(data.otp);
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -35,7 +47,7 @@ export async function sendOtpEmail(email: string, subject: string, data: MailDat
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
-            background-color: #f0f0f0; /* Light Gray Background */
+            background-color: #f0f0f0;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -52,7 +64,7 @@ export async function sendOtpEmail(email: string, subject: string, data: MailDat
             width: 100%;
         }
         h1 {
-            color: #4B0082; /* Deep Indigo - Primary Color */
+            color: #4B0082;
             margin-bottom: 15px;
         }
         p {
@@ -68,11 +80,11 @@ export async function sendOtpEmail(email: string, subject: string, data: MailDat
         .otp {
             font-size: 38px;
             font-weight: bold;
-            color: #008080; /* Teal - Accent Color */
+            color: #008080;
             margin-bottom: 30px;
             letter-spacing: 2px;
             padding: 10px;
-            border: 1px dashed #008080; /* Teal border */
+            border: 1px dashed #008080;
             display: inline-block;
             border-radius: 4px;
         }
@@ -86,16 +98,15 @@ export async function sendOtpEmail(email: string, subject: string, data: MailDat
 <body>
     <div class="container">
         <h1>OTP Verification</h1>
-        <p>Hello ${data.name},</p>
-        <p>Thank you for signing up with TestPrep AI. Please use the following One-Time Password (OTP) to verify your email address and complete your registration. This OTP is valid for 10 minutes.</p>
+        <p>Hello ${safeName},</p>
+        <p>Thank you for signing up with TestPrep AI. Please use the following One-Time Password (OTP) to verify your email address. This OTP is valid for 10 minutes.</p>
         <p class="otp-label">Your OTP is:</p>
-        <p class="otp">${data.otp}</p>
+        <p class="otp">${safeOtp}</p>
         <p>If you did not request this OTP, please ignore this email.</p>
         <p class="footer">Best regards,<br/>The TestPrep AI Team</p>
     </div>
 </body>
-</html>
-`;
+</html>`;
 
   try {
     await transport.sendMail({
@@ -104,10 +115,8 @@ export async function sendOtpEmail(email: string, subject: string, data: MailDat
       subject: subject,
       html: html
     });
-    console.log(`OTP email sent to ${email}`);
   } catch (error) {
     console.error('Error sending OTP email:', error);
-    // Rethrow a more generic error to the client
-    throw new Error('Failed to send OTP email. Please try again later.');
+    throw new Error('Failed to send OTP email.');
   }
 }
