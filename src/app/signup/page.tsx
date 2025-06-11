@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -15,8 +16,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
-import { Loader2, UserPlus, ShieldCheck } from "lucide-react";
+import * as React from "react"; // Changed to import * as React
+import { Loader2, UserPlus, ShieldCheck, MailIcon, KeyRoundIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -38,56 +39,44 @@ const otpSchema = z.object({
 
 type OtpFormValues = z.infer<typeof otpSchema>;
 
-// Helper to parse response
-async function parseResponse(response: Response) {
-  const contentType = response.headers.get('content-type') || '';
+async function parseJsonResponse(response: Response) {
   const text = await response.text();
-  
-  if (contentType.includes('application/json')) {
-    try {
-      return JSON.parse(text);
-    } catch {
-      return { message: text };
-    }
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    console.error("Failed to parse JSON response:", text);
+    return { message: "Received non-JSON response from server. Please check server logs.", error: text };
   }
-  return { message: text };
 }
 
 export default function SignupPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [formStep, setFormStep] = useState<'details' | 'otp'>('details');
-  const [activationToken, setActivationToken] = useState<string | null>(null);
-  const [userEmailForOtp, setUserEmailForOtp] = useState<string>("");
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [formStep, setFormStep] = React.useState<'details' | 'otp'>('details');
+  const [signupOtpToken, setSignupOtpToken] = React.useState<string | null>(null);
+  const [userEmailForOtp, setUserEmailForOtp] = React.useState<string>("");
 
   const detailsForm = useForm<SignupDetailsFormValues>({
     resolver: zodResolver(signupDetailsSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-    },
+    defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
   });
 
   const otpForm = useForm<OtpFormValues>({
     resolver: zodResolver(otpSchema),
-    defaultValues: {
-      otp: "",
-    },
+    defaultValues: { otp: "" },
   });
 
-  async function onRequestOtp(data: SignupDetailsFormValues) {
+  async function onRequestSignupOtp(data: SignupDetailsFormValues) {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/signup', {
+      const response = await fetch('/api/auth/request-signup-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: data.name, email: data.email, password: data.password }),
       });
 
-      const result = await parseResponse(response);
+      const result = await parseJsonResponse(response);
 
       if (!response.ok) {
         toast({
@@ -102,44 +91,47 @@ export default function SignupPage() {
         title: "OTP Sent!",
         description: result.message || "An OTP has been sent to your email.",
       });
-      setActivationToken(result.activationToken);
+      setSignupOtpToken(result.signupOtpToken);
       setUserEmailForOtp(data.email);
       setFormStep('otp');
 
     } catch (error) {
-      handleFetchError(error, "OTP Request Error");
+      console.error("Request Signup OTP client-side error:", error);
+      toast({
+        title: "Request Failed",
+        description: error instanceof Error ? error.message : "Could not connect to server.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   }
 
-  async function onVerifyOtp(data: OtpFormValues) {
-    if (!activationToken) {
-      toast({ title: "Error", description: "Activation token not found. Please try signing up again.", variant: "destructive" });
+  async function onCompleteSignup(data: OtpFormValues) {
+    if (!signupOtpToken) {
+      toast({ title: "Error", description: "Signup session token not found. Please try signing up again.", variant: "destructive" });
       setFormStep('details');
       return;
     }
     setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/verify-otp', {
+      const response = await fetch('/api/auth/complete-signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activationToken, otp: data.otp }),
+        body: JSON.stringify({ signupOtpToken, otp: data.otp }),
       });
 
-      const result = await parseResponse(response);
+      const result = await parseJsonResponse(response);
 
       if (!response.ok) {
         toast({
-          title: "OTP Verification Failed",
+          title: "Signup Failed",
           description: result.message || `Error: ${response.status}`,
           variant: "destructive",
         });
-        // If OTP expired or token is invalid
-        if (result.message && (result.message.toLowerCase().includes("expired") || 
-            result.message.toLowerCase().includes("invalid"))) {
+        if (response.status === 400 && result.message && (result.message.toLowerCase().includes("expired") || result.message.toLowerCase().includes("invalid token"))) {
             setFormStep('details'); 
-            setActivationToken(null);
+            setSignupOtpToken(null);
             detailsForm.reset();
         }
         return;
@@ -147,38 +139,20 @@ export default function SignupPage() {
 
       toast({
         title: "Signup Successful!",
-        description: result.message || "Your account has been created. You can now log in.",
+        description: result.message || "Your account has been created. Redirecting to login...",
       });
-      router.push('/login');
+      router.push('/login'); // Or redirect to dashboard if login is automatic
 
     } catch (error) {
-      handleFetchError(error, "OTP Verification Error");
+      console.error("Complete Signup client-side error:", error);
+      toast({
+        title: "Verification Failed",
+        description: error instanceof Error ? error.message : "Could not connect to server.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
-  }
-
-  function handleFetchError(error: any, contextTitle: string) {
-    let description = "Could not connect to the server. Please try again.";
-    
-    if (error instanceof Error) {
-      // Handle HTML responses
-      if (error.message.includes("<!DOCTYPE html>")) {
-        description = "Server returned unexpected response. Please try again later.";
-      } 
-      else if (error.message.toLowerCase().includes('failed to fetch')) {
-        description = "Network error: Please check your internet connection.";
-      }
-      else {
-        description = error.message;
-      }
-    }
-    
-    toast({
-      title: contextTitle,
-      description,
-      variant: "destructive",
-    });
   }
 
   return (
@@ -190,12 +164,12 @@ export default function SignupPage() {
               <UserPlus className="mx-auto h-12 w-12 text-primary mb-2" />
               <CardTitle className="text-3xl font-bold">Create Account</CardTitle>
               <CardDescription className="text-muted-foreground">
-                Enter your details below to sign up.
+                Enter your details to get an OTP for verification.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...detailsForm}>
-                <form onSubmit={detailsForm.handleSubmit(onRequestOtp)} className="space-y-6">
+                <form onSubmit={detailsForm.handleSubmit(onRequestSignupOtp)} className="space-y-6">
                   <FormField
                     control={detailsForm.control}
                     name="name"
@@ -268,7 +242,7 @@ export default function SignupPage() {
             </CardHeader>
             <CardContent>
               <Form {...otpForm}>
-                <form onSubmit={otpForm.handleSubmit(onVerifyOtp)} className="space-y-6">
+                <form onSubmit={otpForm.handleSubmit(onCompleteSignup)} className="space-y-6">
                   <FormField
                     control={otpForm.control}
                     name="otp"
@@ -291,13 +265,13 @@ export default function SignupPage() {
                 variant="link" 
                 onClick={() => { 
                   setFormStep('details'); 
-                  setActivationToken(null); 
+                  setSignupOtpToken(null); 
                   otpForm.reset(); 
-                  detailsForm.reset(); 
+                  // detailsForm.reset(); // Keep details filled
                 }} 
                 className="mt-4 p-0 h-auto"
               >
-                Change email or details?
+                Entered wrong details? Go back.
               </Button>
             </CardContent>
           </>
