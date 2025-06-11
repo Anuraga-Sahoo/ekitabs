@@ -122,9 +122,11 @@ export default function SignupPage() {
           description: result.message || `Error: ${response.status}`,
           variant: "destructive",
         });
-        if (result.message && result.message.toLowerCase().includes("expired")) {
-            setFormStep('details'); // Go back to details if OTP expired
-            setActivationToken(null);
+        // If OTP expired or token is invalid, reset to details form
+        if (result.message && (result.message.toLowerCase().includes("expired") || result.message.toLowerCase().includes("invalid activation token"))) {
+            setFormStep('details'); 
+            setActivationToken(null); // Clear token
+            detailsForm.reset(); // Reset details form for fresh input
         }
         return;
       }

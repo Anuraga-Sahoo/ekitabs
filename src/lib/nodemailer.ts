@@ -35,7 +35,7 @@ export async function sendOtpEmail(email: string, subject: string, data: MailDat
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
-            background-color: #f4f4f4;
+            background-color: #f0f0f0; /* Light Gray Background */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -52,7 +52,7 @@ export async function sendOtpEmail(email: string, subject: string, data: MailDat
             width: 100%;
         }
         h1 {
-            color: #4B0082; /* Deep Indigo */
+            color: #4B0082; /* Deep Indigo - Primary Color */
             margin-bottom: 15px;
         }
         p {
@@ -68,11 +68,11 @@ export async function sendOtpEmail(email: string, subject: string, data: MailDat
         .otp {
             font-size: 38px;
             font-weight: bold;
-            color: #008080; /* Teal */
+            color: #008080; /* Teal - Accent Color */
             margin-bottom: 30px;
             letter-spacing: 2px;
             padding: 10px;
-            border: 1px dashed #008080;
+            border: 1px dashed #008080; /* Teal border */
             display: inline-block;
             border-radius: 4px;
         }
@@ -87,7 +87,7 @@ export async function sendOtpEmail(email: string, subject: string, data: MailDat
     <div class="container">
         <h1>OTP Verification</h1>
         <p>Hello ${data.name},</p>
-        <p>Thank you for signing up with TestPrep AI. Please use the following One-Time Password (OTP) to verify your email address and complete your registration. This OTP is valid for 5 minutes.</p>
+        <p>Thank you for signing up with TestPrep AI. Please use the following One-Time Password (OTP) to verify your email address and complete your registration. This OTP is valid for 10 minutes.</p>
         <p class="otp-label">Your OTP is:</p>
         <p class="otp">${data.otp}</p>
         <p>If you did not request this OTP, please ignore this email.</p>

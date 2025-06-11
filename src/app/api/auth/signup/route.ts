@@ -61,13 +61,13 @@ export async function POST(request: NextRequest) {
     };
 
     if (!process.env.JWT_SECRET) {
-        console.error("JWT_SECRET_ACTIVATION is not defined.");
+        console.error("JWT_SECRET for activation token is not defined.");
         return NextResponse.json({ message: "Internal server configuration error for OTP." }, { status: 500 });
     }
 
     const activationToken = jwt.sign(
       { user: userDetailsForToken, otp },
-      process.env.JWT_SECRET, // Using the main JWT_SECRET, ensure it's strong
+      process.env.JWT_SECRET, 
       { expiresIn: '10m' } // OTP valid for 10 minutes
     );
 

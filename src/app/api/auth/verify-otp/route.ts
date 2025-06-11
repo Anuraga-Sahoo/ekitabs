@@ -61,15 +61,13 @@ export async function POST(request: NextRequest) {
     try {
       decodedPayload = jwt.verify(activationToken, process.env.JWT_SECRET) as ActivationTokenPayload;
     } catch (err) {
-      console.error("JWT verification error details:", err); // Log raw error first
+      console.error("JWT verification error details:", err); 
       if (err instanceof jwt.TokenExpiredError) {
         return NextResponse.json({ message: "OTP has expired. Please request a new one." }, { status: 400 });
       }
-      // For other JWT errors (malformed, signature invalid etc.)
       return NextResponse.json({ message: "Invalid or malformed activation token. Please try signing up again.", errorObject: JSON.stringify(err) }, { status: 400 });
     }
 
-    // Enhanced payload validation (already good from previous edits)
     if (!decodedPayload || typeof decodedPayload.user !== 'object' || decodedPayload.user === null || typeof decodedPayload.otp !== 'string') {
         console.error("Decoded JWT payload is malformed (missing user object or otp):", decodedPayload);
         return NextResponse.json({ message: "Invalid activation token payload structure." }, { status: 400 });
@@ -81,6 +79,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: "Invalid user details in activation token payload." }, { status: 400 });
     }
 
+
     if (userSubmittedOtp !== decodedPayload.otp) {
       return NextResponse.json({ message: "Invalid OTP. Please try again." }, { status: 400 });
     }
@@ -88,14 +87,11 @@ export async function POST(request: NextRequest) {
     const { user: userDetails } = decodedPayload;
     const usersCollection = await getUsersCollection();
 
-    // Check if a user with this email is already verified.
     const existingVerifiedUser = await usersCollection.findOne({ email: userDetails.email.toLowerCase(), isVerified: true });
     if (existingVerifiedUser) {
       return NextResponse.json({ message: "User with this email is already verified." }, { status: 409 });
     }
 
-    // Upsert user: Create if not exists, or update if exists (e.g., an unverified entry)
-    // Email in userDetails is already lowercased from the signup token generation.
     const result = await usersCollection.updateOne(
       { email: userDetails.email.toLowerCase() }, 
       {
@@ -103,20 +99,16 @@ export async function POST(request: NextRequest) {
           name: userDetails.name,
           passwordHash: userDetails.passwordHash,
           isVerified: true,
-          createdAt: new Date(), // Set createdAt on verification/creation
+          createdAt: new Date(), 
         },
-        $setOnInsert: { // email is part of the query, so only set it explicitly on insert if it wasn't in $set
+        $setOnInsert: { 
              email: userDetails.email.toLowerCase()
         }
       },
       { upsert: true }
     );
 
-    if (result.upsertedId || result.matchedCount > 0 || (result.acknowledged && result.modifiedCount === 0 && result.matchedCount === 0) ) {
-      // result.acknowledged check is for MongoDB driver versions where upsertedId might be null if an existing doc is matched but not modified.
-      // A successful upsert that matches and updates, or inserts, will have matchedCount > 0 or upsertedId.
-      // If matchedCount is 0 and upsertedId is null, but acknowledged is true, it implies an insert was attempted but perhaps didn't meet criteria if a deeper issue.
-      // For a simple upsert logic as this, (result.upsertedId || result.matchedCount > 0) is usually sufficient.
+    if (result.upsertedId || result.matchedCount > 0) {
       return NextResponse.json({ message: "Email verified and account created successfully." }, { status: 201 });
     } else {
       console.error("User creation/update via upsert failed unexpectedly for email:", userDetails.email, "Mongo UpdateResult:", result);
@@ -124,7 +116,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
-    console.error('Verify OTP error details:', error); // Main log of the error object
+    console.error('Verify OTP error details:', error); 
 
     let errorMessage = "An unknown error occurred during OTP verification.";
     let errorStack = null;
@@ -144,7 +136,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
         message: "Internal server error during OTP verification. Please check server logs for details.",
         error: errorMessage,
-        // Optionally, include stack in non-production environments for easier debugging
         ...(process.env.NODE_ENV !== 'production' && errorStack ? { stack: errorStack } : {})
     }, { status: 500 });
   }
