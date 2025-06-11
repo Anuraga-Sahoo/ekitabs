@@ -73,8 +73,8 @@ export async function POST(request: NextRequest) {
         console.error("Decoded JWT payload is malformed (missing user object or otp):", decodedPayload);
         return NextResponse.json({ message: "Invalid activation token payload structure." }, { status: 400 });
     }
-    if (typeof decodedPayload.user.name !== 'string' || 
-        typeof decodedPayload.user.email !== 'string' || 
+    if (typeof decodedPayload.user.name !== 'string' ||
+        typeof decodedPayload.user.email !== 'string' ||
         typeof decodedPayload.user.passwordHash !== 'string') {
         console.error("Decoded JWT user details are malformed:", decodedPayload.user);
         return NextResponse.json({ message: "Invalid user details in activation token payload." }, { status: 400 });
@@ -92,42 +92,37 @@ export async function POST(request: NextRequest) {
     if (existingVerifiedUser) {
       return NextResponse.json({ message: "User with this email is already verified." }, { status: 409 });
     }
-    
+
     const result = await usersCollection.updateOne(
-      { email: userDetails.email.toLowerCase() },
+      { email: userDetails.email.toLowerCase() }, // Query by lowercase email
       {
         $set: {
           name: userDetails.name,
           passwordHash: userDetails.passwordHash,
           isVerified: true,
-          // Set createdAt only if it's a new user or update it if you want to track last verification time
-          // For simplicity, we set/update it here.
-          createdAt: new Date(), 
+          createdAt: new Date(),
         },
-        $setOnInsert: { 
+        $setOnInsert: {
+            // email is already part of the query and will be set correctly.
+            // userDetails.email from token is already lowercase.
             email: userDetails.email.toLowerCase(),
-            // createdAt: new Date() // Alternatively, only set createdAt on insert
         }
       },
       { upsert: true }
     );
 
-
-    if (result.upsertedId || result.modifiedCount > 0 || result.matchedCount > 0) {
-         // Ensure email is stored consistently (e.g., lowercase)
-         if (result.upsertedId && userDetails.email !== userDetails.email.toLowerCase()) {
-            await usersCollection.updateOne({ _id: result.upsertedId }, { $set: { email: userDetails.email.toLowerCase() } });
-         } else if (result.modifiedCount > 0 && userDetails.email !== userDetails.email.toLowerCase()) {
-            // If an existing non-verified user was updated, ensure their email is also lowercase if it wasn't.
-            // This requires finding them again if their email case was different, or handling it in the initial query.
-            // For simplicity, the initial query for upsert now uses toLowerCase()
-         }
-         return NextResponse.json({ message: "Email verified and account created successfully." }, { status: 201 });
+    // Check if the upsert operation was successful
+    if (result.upsertedId || result.matchedCount > 0) {
+      // If upsertedId exists, a new user was created.
+      // If matchedCount > 0, an existing user was found and updated (or matched without changes if data was identical).
+      // In both cases, isVerified: true is set by the $set operation.
+      return NextResponse.json({ message: "Email verified and account created successfully." }, { status: 201 });
     } else {
-        console.error("User creation/update failed despite OTP verification for email:", userDetails.email, "Result:", result);
-        return NextResponse.json({ message: "Failed to create or update user account after verification." }, { status: 500 });
+      // This state (no upsert AND no match) should ideally not happen with upsert:true
+      // unless there's a fundamental issue with the DB operation.
+      console.error("User creation/update via upsert failed unexpectedly for email:", userDetails.email, "Mongo UpdateResult:", result);
+      return NextResponse.json({ message: "Failed to create or update user account after verification due to an unexpected database issue." }, { status: 500 });
     }
-
 
   } catch (error) {
     console.error('Verify OTP error:', error);
