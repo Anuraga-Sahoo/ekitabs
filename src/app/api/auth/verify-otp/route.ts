@@ -61,14 +61,15 @@ export async function POST(request: NextRequest) {
     try {
       decodedPayload = jwt.verify(activationToken, process.env.JWT_SECRET) as ActivationTokenPayload;
     } catch (err) {
+      console.error("JWT verification error details:", err); // Log raw error first
       if (err instanceof jwt.TokenExpiredError) {
         return NextResponse.json({ message: "OTP has expired. Please request a new one." }, { status: 400 });
       }
-      console.error("JWT verification error:", err);
-      return NextResponse.json({ message: "Invalid or malformed activation token." }, { status: 400 });
+      // For other JWT errors (malformed, signature invalid etc.)
+      return NextResponse.json({ message: "Invalid or malformed activation token. Please try signing up again.", errorObject: JSON.stringify(err) }, { status: 400 });
     }
 
-    // Enhanced payload validation
+    // Enhanced payload validation (already good from previous edits)
     if (!decodedPayload || typeof decodedPayload.user !== 'object' || decodedPayload.user === null || typeof decodedPayload.otp !== 'string') {
         console.error("Decoded JWT payload is malformed (missing user object or otp):", decodedPayload);
         return NextResponse.json({ message: "Invalid activation token payload structure." }, { status: 400 });
@@ -80,7 +81,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: "Invalid user details in activation token payload." }, { status: 400 });
     }
 
-
     if (userSubmittedOtp !== decodedPayload.otp) {
       return NextResponse.json({ message: "Invalid OTP. Please try again." }, { status: 400 });
     }
@@ -88,45 +88,64 @@ export async function POST(request: NextRequest) {
     const { user: userDetails } = decodedPayload;
     const usersCollection = await getUsersCollection();
 
+    // Check if a user with this email is already verified.
     const existingVerifiedUser = await usersCollection.findOne({ email: userDetails.email.toLowerCase(), isVerified: true });
     if (existingVerifiedUser) {
       return NextResponse.json({ message: "User with this email is already verified." }, { status: 409 });
     }
 
+    // Upsert user: Create if not exists, or update if exists (e.g., an unverified entry)
+    // Email in userDetails is already lowercased from the signup token generation.
     const result = await usersCollection.updateOne(
-      { email: userDetails.email.toLowerCase() }, // Query by lowercase email
+      { email: userDetails.email.toLowerCase() }, 
       {
         $set: {
           name: userDetails.name,
           passwordHash: userDetails.passwordHash,
           isVerified: true,
-          createdAt: new Date(),
+          createdAt: new Date(), // Set createdAt on verification/creation
         },
-        $setOnInsert: {
-            // email is already part of the query and will be set correctly.
-            // userDetails.email from token is already lowercase.
-            email: userDetails.email.toLowerCase(),
+        $setOnInsert: { // email is part of the query, so only set it explicitly on insert if it wasn't in $set
+             email: userDetails.email.toLowerCase()
         }
       },
       { upsert: true }
     );
 
-    // Check if the upsert operation was successful
-    if (result.upsertedId || result.matchedCount > 0) {
-      // If upsertedId exists, a new user was created.
-      // If matchedCount > 0, an existing user was found and updated (or matched without changes if data was identical).
-      // In both cases, isVerified: true is set by the $set operation.
+    if (result.upsertedId || result.matchedCount > 0 || (result.acknowledged && result.modifiedCount === 0 && result.matchedCount === 0) ) {
+      // result.acknowledged check is for MongoDB driver versions where upsertedId might be null if an existing doc is matched but not modified.
+      // A successful upsert that matches and updates, or inserts, will have matchedCount > 0 or upsertedId.
+      // If matchedCount is 0 and upsertedId is null, but acknowledged is true, it implies an insert was attempted but perhaps didn't meet criteria if a deeper issue.
+      // For a simple upsert logic as this, (result.upsertedId || result.matchedCount > 0) is usually sufficient.
       return NextResponse.json({ message: "Email verified and account created successfully." }, { status: 201 });
     } else {
-      // This state (no upsert AND no match) should ideally not happen with upsert:true
-      // unless there's a fundamental issue with the DB operation.
       console.error("User creation/update via upsert failed unexpectedly for email:", userDetails.email, "Mongo UpdateResult:", result);
       return NextResponse.json({ message: "Failed to create or update user account after verification due to an unexpected database issue." }, { status: 500 });
     }
 
-  } catch (error) {
-    console.error('Verify OTP error:', error);
-    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-    return NextResponse.json({ message: "Internal server error during OTP verification", error: errorMessage }, { status: 500 });
+  } catch (error: any) {
+    console.error('Verify OTP error details:', error); // Main log of the error object
+
+    let errorMessage = "An unknown error occurred during OTP verification.";
+    let errorStack = null;
+
+    if (error && typeof error === 'object') {
+        if ('message' in error && typeof error.message === 'string') {
+            errorMessage = error.message;
+        }
+        if ('stack' in error && typeof error.stack === 'string') {
+            errorStack = error.stack;
+            console.error("Stack trace:", errorStack);
+        }
+    } else if (typeof error === 'string') {
+        errorMessage = error;
+    }
+
+    return NextResponse.json({
+        message: "Internal server error during OTP verification. Please check server logs for details.",
+        error: errorMessage,
+        // Optionally, include stack in non-production environments for easier debugging
+        ...(process.env.NODE_ENV !== 'production' && errorStack ? { stack: errorStack } : {})
+    }, { status: 500 });
   }
 }
