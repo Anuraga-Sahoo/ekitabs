@@ -4,7 +4,7 @@
 import type { TestResultItem, AppQuestion } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, XCircle, MinusCircle, Download, RotateCcw, HomeIcon, BookOpen, TrendingUp, TrendingDown, BarChart3, Clock, Award, Eye } from 'lucide-react';
+import { CheckCircle, XCircle, MinusCircle, Download, RotateCcw, BookOpen, TrendingUp, TrendingDown, BarChart3, Clock, Award, Eye, LayoutDashboard } from 'lucide-react';
 import { generateTestPdf } from '@/lib/pdfGenerator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,6 @@ import { Separator } from '@/components/ui/separator';
 
 interface TestResultsDisplayProps {
   result: TestResultItem;
-  onNavigateHome?: () => void; // Optional: if you want a dedicated home button action
 }
 
 const getMark = (question: AppQuestion): number => {
@@ -46,7 +45,7 @@ interface SubjectPerformance {
   percentage: number;
 }
 
-export default function TestResultsDisplay({ result, onNavigateHome }: TestResultsDisplayProps) {
+export default function TestResultsDisplay({ result }: TestResultsDisplayProps) {
   const { score, questions, testType, originalQuizId, testTitle, timeTakenSeconds, config, testAttemptId } = result;
   const router = useRouter();
 
@@ -215,11 +214,10 @@ export default function TestResultsDisplay({ result, onNavigateHome }: TestResul
                 <Download className="mr-2 h-5 w-5" /> Download PDF Report
               </Button>
             </div>
-             {onNavigateHome && (
-                <Button onClick={onNavigateHome} variant="link" className="mt-4 text-primary">
-                    <HomeIcon className="mr-2 h-4 w-4" /> Back to Home
-                </Button>
-            )}
+            <Button onClick={() => router.push('/dashboard')} variant="outline" size="lg" className="w-full mt-4">
+                <LayoutDashboard className="mr-2 h-5 w-5" />
+                Back to Dashboard
+            </Button>
           </div>
         </div>
       

@@ -234,7 +234,7 @@ export default function MockTestPage() {
   }
 
   if (testState === 'completed' && testResult) {
-    return <TestResultsDisplay result={testResult} onNavigateHome={() => router.push('/')} />;
+    return <TestResultsDisplay result={testResult} />;
   }
 
   return (

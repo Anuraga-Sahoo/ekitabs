@@ -259,7 +259,7 @@ export default function PracticeTestPage() {
   }
 
   if (testState === 'completed' && testResult) {
-     return <TestResultsDisplay result={testResult} onNavigateHome={() => router.push('/')} />;
+     return <TestResultsDisplay result={testResult} />;
   }
 
   // Default to setup form
