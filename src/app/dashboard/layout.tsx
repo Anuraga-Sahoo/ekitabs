@@ -32,6 +32,7 @@ interface NavItem {
   href: string;
   label: string;
   icon: React.ElementType;
+  iconClass?: string; // Added to allow specific class for AI group icons
 }
 
 const topLevelNavItems: NavItem[] = [
@@ -42,10 +43,12 @@ const topLevelNavItems: NavItem[] = [
   { href: '/test-history', label: 'Test History', icon: History },
 ];
 
-const aiTestNavItems = [
+const aiTestNavItems: NavItem[] = [
   { href: '/ai-tests', label: 'Overview', icon: Sparkles, iconClass: "h-3.5 w-3.5 opacity-80" },
   { href: '/mock-test', label: 'AI Mock Test', icon: PencilRuler, iconClass: "h-3.5 w-3.5 opacity-80" },
   { href: '/practice-test', label: 'AI Practice Test', icon: BookOpenText, iconClass: "h-3.5 w-3.5 opacity-80" },
+  { href: '/new-mock-test', label: 'New Mock Test', icon: PencilRuler, iconClass: "h-3.5 w-3.5 opacity-80" },
+  { href: '/new-practice-test', label: 'New Practice Test', icon: Target, iconClass: "h-3.5 w-3.5 opacity-80" },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
