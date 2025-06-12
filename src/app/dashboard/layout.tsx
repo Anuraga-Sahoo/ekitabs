@@ -14,12 +14,9 @@ import {
   SidebarMenuButton,
   SidebarInset,
   SidebarTrigger,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarGroupContent
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Home, LayoutDashboard, Sparkles, BookOpenText, PencilRuler, History, Menu as MenuIcon } from 'lucide-react';
+import { Home, LayoutDashboard, History, Menu as MenuIcon, NotebookPen, PencilRuler, Target } from 'lucide-react'; // Added NotebookPen, Target
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -30,14 +27,6 @@ const TestPrepAiLogo = () => (
 );
 
 interface NavItem {
-  href?: string;
-  label: string;
-  icon: React.ElementType;
-  isGroup?: boolean;
-  subItems?: NavSubItem[];
-}
-
-interface NavSubItem {
   href: string;
   label: string;
   icon: React.ElementType;
@@ -46,17 +35,10 @@ interface NavSubItem {
 const navItems: NavItem[] = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  {
-    label: 'AI Powered Tests',
-    icon: Sparkles, 
-    isGroup: true,
-    subItems: [
-      { href: '/ai-tests', label: 'Overview', icon: Sparkles },
-      { href: '/mock-test', label: 'AI Mock Test', icon: PencilRuler },
-      { href: '/practice-test', label: 'AI Practice Test', icon: BookOpenText },
-    ],
-  },
-  { href: '/test-history', label: 'Attempted Test', icon: History },
+  { href: '/previous-year-tests', label: 'Previous Year Test', icon: NotebookPen },
+  { href: '/new-mock-test', label: 'Mock Test', icon: PencilRuler },
+  { href: '/new-practice-test', label: 'Practice Test', icon: Target },
+  { href: '/test-history', label: 'Test History', icon: History },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -79,52 +61,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Link>
           </SidebarHeader>
           <SidebarContent className="p-0">
-            <SidebarMenu className="p-2 space-y-2"> {/* Increased space-y for main menu items */}
-              {navItems.map((item) => {
-                if (item.isGroup && item.subItems) {
-                  const isGroupActive = item.subItems.some(subItem => pathname === subItem.href || pathname.startsWith(subItem.href + '/'));
-                  return (
-                    <SidebarGroup key={item.label} className="p-0">
-                      <SidebarGroupLabel className="px-2 py-1.5 text-xs text-muted-foreground group-data-[state=collapsed]:hidden flex items-center">
-                        <item.icon className="mr-2 h-4 w-4" /> {item.label}
-                      </SidebarGroupLabel>
-                       <div className="group-data-[expanded]:hidden text-center my-1">
-                         <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="hidden h-8 w-8 mx-auto pointer-events-none">
-                                      {/* <item.icon className="h-4 w-4 text-muted-foreground" /> Standardized icon size */}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent side="right" align="center">
-                                    {item.label}
-                                </TooltipContent>
-                            </Tooltip>
-                         </TooltipProvider>
-                       </div>
-                      <SidebarGroupContent className="group-data-[state=collapsed]:mt-0"> {/* Removed pl-0 from here */}
-                        <SidebarMenu className="space-y-1 group-data-[state=expanded]:pl-4"> {/* Added pl-4 for indentation when expanded, kept space-y-1 for tighter sub-items */}
-                          {item.subItems.map((subItem) => (
-                            <SidebarMenuItem key={subItem.href} className="p-0">
-                              <SidebarMenuButton
-                                isActive={pathname === subItem.href || pathname.startsWith(subItem.href + '/')}
-                                className="w-full justify-start text-sm"
-                                asChild
-                                tooltip={{ children: subItem.label, side: 'right', align: 'center' }}
-                              >
-                                <Link href={subItem.href}>
-                                  <subItem.icon />
-                                  <span className="group-data-[state=collapsed]:hidden">{subItem.label}</span>
-                                </Link>
-                              </SidebarMenuButton>
-                            </SidebarMenuItem>
-                          ))}
-                        </SidebarMenu>
-                      </SidebarGroupContent>
-                    </SidebarGroup>
-                  );
-                }
-                return (
+            <SidebarMenu className="p-2 space-y-2">
+              {navItems.map((item) => (
                   <SidebarMenuItem key={item.href} className="p-0">
                     <SidebarMenuButton
                       isActive={pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href + '/'))}
@@ -132,14 +70,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       asChild
                       tooltip={{ children: item.label, side: 'right', align: 'center' }}
                     >
-                      <Link href={item.href!}>
+                      <Link href={item.href}>
                         <item.icon />
                         <span className="group-data-[state=collapsed]:hidden">{item.label}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                );
-              })}
+                )
+              )}
             </SidebarMenu>
           </SidebarContent>
         </Sidebar>
