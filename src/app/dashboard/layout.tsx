@@ -67,13 +67,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex min-h-screen bg-background">
         <Sidebar 
           side="left" 
-          className="border-r bg-card text-card-foreground" 
+          className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground" 
           collapsible="icon"
         >
-          <SidebarHeader className="p-3 border-b h-[60px] flex items-center justify-center">
+          <SidebarHeader className="p-3 border-b border-sidebar-border h-[60px] flex items-center justify-center">
             <Link href="/dashboard" className="flex items-center gap-2 w-full group-data-[state=expanded]:justify-start group-data-[state=collapsed]:justify-center">
               <TestPrepAiLogo />
-              <span className="font-semibold text-lg group-data-[state=collapsed]:hidden whitespace-nowrap">
+              <span className="font-semibold text-lg text-sidebar-primary group-data-[state=collapsed]:hidden whitespace-nowrap">
                 TestPrep AI
               </span>
             </Link>
@@ -85,7 +85,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   const isGroupActive = item.subItems.some(subItem => pathname === subItem.href || pathname.startsWith(subItem.href + '/'));
                   return (
                     <SidebarGroup key={item.label} className="p-0">
-                      <SidebarGroupLabel className="px-2 py-1.5 text-xs text-sidebar-foreground/70 group-data-[state=collapsed]:hidden flex items-center">
+                      <SidebarGroupLabel className="px-2 py-1.5 text-xs text-muted-foreground group-data-[state=collapsed]:hidden flex items-center">
                         <item.icon className="mr-2 h-4 w-4" /> {item.label}
                       </SidebarGroupLabel>
                        <div className="group-data-[expanded]:hidden text-center my-1">
@@ -145,11 +145,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </Sidebar>
 
         <SidebarInset className="flex-1 flex flex-col overflow-x-hidden">
-          <header className="bg-card border-b p-0 md:p-3 sticky top-0 z-30 flex items-center justify-between h-[60px] md:hidden">
+          <header className="bg-card border-b border-sidebar-border p-0 md:p-3 sticky top-0 z-30 flex items-center justify-between h-[60px] md:hidden">
             <div className="flex items-center gap-2 px-3">
                 <Link href="/dashboard" className="flex items-center gap-2">
                   <TestPrepAiLogo />
-                  <span className="font-semibold text-lg">TestPrep AI</span>
+                  <span className="font-semibold text-lg text-primary">TestPrep AI</span>
                 </Link>
             </div>
             <SidebarTrigger className="h-9 w-9 mr-2"> <MenuIcon/> </SidebarTrigger>
