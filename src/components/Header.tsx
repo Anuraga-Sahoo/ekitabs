@@ -18,7 +18,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from '@/hooks/useAuth';
 import * as React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 
 interface NavItemConfig {
@@ -131,15 +131,9 @@ export default function Header() {
       });
 
       if (isMobile) {
-        // For mobile, wrap DropdownMenuTrigger in SheetClose if needed, or handle closing differently.
-        // Here, we assume dropdown items themselves handle sheet closing via SheetClose asChild.
         return (
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                   {/* The button that triggers the dropdown */}
-                   {/* For mobile, this button itself might be a SheetClose target if it's the last action before showing content */}
-                   {/* Or, rely on items inside DropdownMenuContent to have SheetClose */}
-                   {/* Let's assume the trigger itself doesn't need SheetClose, items do. */}
                    {dropdownTriggerButton}
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
@@ -161,7 +155,6 @@ export default function Header() {
       }
     }
 
-    // For non-dropdown items
     const navButtonElement = (
       <Button
         variant={'ghost'}
@@ -289,7 +282,8 @@ export default function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-full max-w-xs p-0 flex flex-col">
-                <div className="p-4 border-b">
+                <SheetHeader className="p-4 border-b">
+                    <SheetTitle className="sr-only">Main Navigation</SheetTitle> 
                     <SheetClose asChild> 
                         <Link href="/" className="text-xl font-bold tracking-tight flex items-center gap-2 text-primary">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
@@ -298,7 +292,7 @@ export default function Header() {
                         TestPrep AI
                         </Link>
                     </SheetClose>
-                </div>
+                </SheetHeader>
                 <nav className="flex flex-col space-y-1 p-4 flex-grow">
                   {visibleNavItems.map(item => {
                     const navElement = renderNavItem(item, true);
