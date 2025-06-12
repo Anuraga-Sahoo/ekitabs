@@ -37,15 +37,16 @@ async function getUsersCollection(): Promise<Collection<UserDocument>> {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    if (!process.env.JWT_SECRET) {
-      console.error("JWT_SECRET is not defined for OTP verification.");
-      return NextResponse.json(
-        { message: "Internal server configuration error." },
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+  if (!process.env.JWT_SECRET) {
+    console.error("API Error: JWT_SECRET is not defined for completing signup.");
+    return NextResponse.json(
+      { message: "Internal server configuration error: JWT_SECRET missing." },
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+  const jwtSecret = process.env.JWT_SECRET;
 
+  try {
     const body = await request.json();
     const validationResult = completeSignupSchema.safeParse(body);
 
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     let decodedPayload: SignupOtpPayload;
     try {
-      decodedPayload = jwt.verify(signupOtpToken, process.env.JWT_SECRET) as SignupOtpPayload;
+      decodedPayload = jwt.verify(signupOtpToken, jwtSecret) as SignupOtpPayload;
     } catch (err: any) {
       if (err instanceof jwt.TokenExpiredError) {
         return NextResponse.json(
@@ -68,6 +69,7 @@ export async function POST(request: NextRequest) {
           { status: 400, headers: { 'Content-Type': 'application/json' } }
         );
       }
+      console.error("Complete Signup: Invalid or malformed signup token:", err);
       return NextResponse.json(
         { message: "Invalid or malformed signup token. Please try signing up again." },
         { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -81,7 +83,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, email, passwordHash } = decodedPayload; // email is already lowercased
+    const { name, email, passwordHash } = decodedPayload; // email is already lowercased from request-signup-otp
 
     const usersCollection = await getUsersCollection();
     const existingUser = await usersCollection.findOne({ email: email });
@@ -93,32 +95,29 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const newUserId = new ObjectId();
+    const newUserIdOnInsert = new ObjectId();
 
-    // Upsert user: create if not exists, or update if exists (e.g., an unverified entry)
     const updateResult = await usersCollection.updateOne(
-      { email: email },
+      { email: email }, // Match by email
       {
-        $set: {
+        $set: { // Fields to set regardless of insert or update
           name: name,
           passwordHash: passwordHash,
           isVerified: true,
         },
-        $setOnInsert: {
-          _id: newUserId,
-          email: email, // Ensure email is set on insert
+        $setOnInsert: { // Fields to set only if a new document is inserted
+          _id: newUserIdOnInsert,
+          email: email, // Ensure email is set on insert, should be already lowercased
           createdAt: new Date(),
         }
       },
       { upsert: true }
     );
     
-    const finalUserId = updateResult.upsertedId ? updateResult.upsertedId : (existingUser ? existingUser._id : newUserId);
+    const finalUserId = updateResult.upsertedId ? updateResult.upsertedId : (existingUser ? existingUser._id : newUserIdOnInsert);
 
-
-    // Generate main authentication token
     const authTokenPayload = { userId: finalUserId.toString(), email: email, name: name };
-    const authToken = jwt.sign(authTokenPayload, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const authToken = jwt.sign(authTokenPayload, jwtSecret, { expiresIn: '7d' });
 
     const cookieStore = cookies();
     const cookieOptionsBase = {
@@ -138,11 +137,34 @@ export async function POST(request: NextRequest) {
       { status: 201, headers: { 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
-    console.error('Complete Signup error:', error);
-    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+  } catch (error: any) {
+    console.error('Complete Signup API Unhandled Error:', error);
+    let errorMessage = "An unknown error occurred during account completion.";
+    let errorDetails = null;
+    let errorStack = null;
+
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      errorStack = error.stack;
+    } else if (typeof error === 'object' && error !== null && 'message' in error) {
+      errorMessage = String(error.message);
+    } else {
+      errorMessage = String(error);
+    }
+    
+    try {
+        errorDetails = JSON.parse(JSON.stringify(error));
+    } catch (serializeError) {
+        errorDetails = "Error object could not be serialized.";
+    }
+
     return NextResponse.json(
-      { message: "Internal server error", error: errorMessage },
+      { 
+        message: "Internal server error during account completion.", 
+        error: errorMessage,
+        details: process.env.NODE_ENV !== 'production' ? errorDetails : undefined,
+        stack: process.env.NODE_ENV !== 'production' ? errorStack : undefined 
+      },
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }

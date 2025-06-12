@@ -23,7 +23,7 @@ interface UserDocument {
   _id: ObjectId;
   name: string;
   email: string;
-  passwordHash: string; // Might not be used for OTP login, but present for users who set it
+  passwordHash?: string; // Password might not be set for all OTP users if signup also OTP
   isVerified: boolean;
 }
 
@@ -34,15 +34,16 @@ async function getUsersCollection(): Promise<Collection<UserDocument>> {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    if (!process.env.JWT_SECRET) {
-      console.error("JWT_SECRET is not defined for OTP verification.");
-      return NextResponse.json(
-        { message: "Internal server configuration error." },
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+  if (!process.env.JWT_SECRET) {
+    console.error("API Error: JWT_SECRET is not defined for verifying login OTP.");
+    return NextResponse.json(
+      { message: "Internal server configuration error: JWT_SECRET missing." },
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+  const jwtSecret = process.env.JWT_SECRET;
 
+  try {
     const body = await request.json();
     const validationResult = verifyLoginOtpSchema.safeParse(body);
 
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     let decodedPayload: LoginOtpPayload;
     try {
-      decodedPayload = jwt.verify(loginOtpToken, process.env.JWT_SECRET) as LoginOtpPayload;
+      decodedPayload = jwt.verify(loginOtpToken, jwtSecret) as LoginOtpPayload;
     } catch (err: any) {
       if (err instanceof jwt.TokenExpiredError) {
         return NextResponse.json(
@@ -65,6 +66,7 @@ export async function POST(request: NextRequest) {
           { status: 400, headers: { 'Content-Type': 'application/json' } }
         );
       }
+      console.error("Verify Login OTP: Invalid or malformed login token:", err);
       return NextResponse.json(
         { message: "Invalid or malformed login token." },
         { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -78,22 +80,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email } = decodedPayload; // email is already lowercased
+    const { email } = decodedPayload; // email is already lowercased from request-login-otp
 
     const usersCollection = await getUsersCollection();
     const user = await usersCollection.findOne({ email: email, isVerified: true });
 
     if (!user) {
-      // This case should ideally be caught by request-login-otp, but as a safeguard:
       return NextResponse.json(
         { message: "User not found or not verified. Please sign up or verify your email." },
         { status: 404, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // Generate main authentication token
     const authTokenPayload = { userId: user._id.toString(), email: user.email, name: user.name };
-    const authToken = jwt.sign(authTokenPayload, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const authToken = jwt.sign(authTokenPayload, jwtSecret, { expiresIn: '7d' });
 
     const cookieStore = cookies();
     const cookieOptionsBase = {
@@ -113,11 +113,34 @@ export async function POST(request: NextRequest) {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
-    console.error('Verify Login OTP error:', error);
-    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+  } catch (error: any) {
+    console.error('Verify Login OTP API Unhandled Error:', error);
+    let errorMessage = "An unknown error occurred during login OTP verification.";
+    let errorDetails = null;
+    let errorStack = null;
+
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      errorStack = error.stack;
+    } else if (typeof error === 'object' && error !== null && 'message' in error) {
+      errorMessage = String(error.message);
+    } else {
+      errorMessage = String(error);
+    }
+    
+    try {
+        errorDetails = JSON.parse(JSON.stringify(error));
+    } catch (serializeError) {
+        errorDetails = "Error object could not be serialized.";
+    }
+
     return NextResponse.json(
-      { message: "Internal server error", error: errorMessage },
+      { 
+        message: "Internal server error during login OTP verification.", 
+        error: errorMessage,
+        details: process.env.NODE_ENV !== 'production' ? errorDetails : undefined,
+        stack: process.env.NODE_ENV !== 'production' ? errorStack : undefined 
+      },
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
