@@ -56,7 +56,7 @@ const navItems: NavItem[] = [
       { href: '/practice-test', label: 'AI Practice Test', icon: BookOpenText },
     ],
   },
-  { href: '/test-history', label: 'Test History', icon: History },
+  { href: '/test-history', label: 'Attempted Test', icon: History },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -92,8 +92,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                          <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 mx-auto pointer-events-none">
-                                      <item.icon className="h-4 w-4 text-muted-foreground" /> {/* Standardized icon size */}
+                                    <Button variant="ghost" size="icon" className="hidden h-8 w-8 mx-auto pointer-events-none">
+                                      {/* <item.icon className="h-4 w-4 text-muted-foreground" /> Standardized icon size */}
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent side="right" align="center">
