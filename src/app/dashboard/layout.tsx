@@ -12,13 +12,15 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
   SidebarInset,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Home, LayoutDashboard, History, Menu as MenuIcon, NotebookPen, PencilRuler, Target } from 'lucide-react'; // Added NotebookPen, Target
+import { Home, LayoutDashboard, History, Menu as MenuIcon, NotebookPen, PencilRuler, Target, Sparkles, BookOpenText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const TestPrepAiLogo = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7 text-sidebar-primary group-data-[state=collapsed]:text-primary">
@@ -32,13 +34,18 @@ interface NavItem {
   icon: React.ElementType;
 }
 
-const navItems: NavItem[] = [
+const topLevelNavItems: NavItem[] = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/previous-year-tests', label: 'Previous Year Test', icon: NotebookPen },
-  { href: '/new-mock-test', label: 'Mock Test', icon: PencilRuler },
-  { href: '/new-practice-test', label: 'Practice Test', icon: Target },
+  // AI Powered Tests will be a group below
   { href: '/test-history', label: 'Test History', icon: History },
+];
+
+const aiTestNavItems = [
+  { href: '/ai-tests', label: 'Overview', icon: Sparkles, iconClass: "h-3.5 w-3.5 opacity-80" },
+  { href: '/mock-test', label: 'AI Mock Test', icon: PencilRuler, iconClass: "h-3.5 w-3.5 opacity-80" },
+  { href: '/practice-test', label: 'AI Practice Test', icon: BookOpenText, iconClass: "h-3.5 w-3.5 opacity-80" },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -61,8 +68,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Link>
           </SidebarHeader>
           <SidebarContent className="p-0">
-            <SidebarMenu className="p-2 space-y-2">
-              {navItems.map((item) => (
+            <SidebarMenu className="p-2 space-y-2.5"> {/* Increased spacing */}
+              {topLevelNavItems.map((item) => (
                   <SidebarMenuItem key={item.href} className="p-0">
                     <SidebarMenuButton
                       isActive={pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href + '/'))}
@@ -78,6 +85,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </SidebarMenuItem>
                 )
               )}
+
+              {/* AI Powered Tests Group */}
+              <SidebarGroup>
+                <SidebarGroupLabel
+                  icon={Sparkles}
+                  className="group-data-[state=expanded]:text-primary text-muted-foreground"
+                >
+                  AI Powered Tests
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu className="space-y-1">
+                    {aiTestNavItems.map((item) => (
+                      <SidebarMenuItem key={item.href} className="p-0">
+                        <SidebarMenuButton
+                           isActive={pathname === item.href || pathname.startsWith(item.href + '/')}
+                           className="w-full justify-start text-sm pl-[1.125rem] group-data-[state=collapsed]:pl-2" // Indented, adjusted for collapsed
+                           asChild
+                           tooltip={{ children: item.label, side: 'right', align: 'center' }}
+                        >
+                          <Link href={item.href}>
+                            <item.icon className={cn(item.iconClass, "group-data-[state=collapsed]:h-4 group-data-[state=collapsed]:w-4 group-data-[state=collapsed]:opacity-100")} />
+                            <span className="group-data-[state=collapsed]:hidden">{item.label}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+
             </SidebarMenu>
           </SidebarContent>
         </Sidebar>
