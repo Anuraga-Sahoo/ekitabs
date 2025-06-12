@@ -1,13 +1,15 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { BarChart2, Settings, UserCircle } from 'lucide-react';
+import { BarChart2, Settings, UserCircle, Sparkles as ExploreIcon } from 'lucide-react'; // Renamed Sparkles to ExploreIcon to avoid conflict
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export default function DashboardPage() {
   return (
-    <div className="container mx-auto px-4 py-12">
-      <Card className="max-w-4xl mx-auto shadow-lg">
+    // The container and overall padding will be handled by DashboardLayout
+    // No need for mx-auto or explicit py-12 here if layout handles it.
+    <div className="w-full"> 
+      <Card className="shadow-lg"> {/* max-w-4xl mx-auto removed, layout can control width if needed */}
         <CardHeader>
           <CardTitle className="text-3xl font-bold text-primary text-center">Welcome to Your Dashboard</CardTitle>
           <CardDescription className="text-lg text-center text-muted-foreground">
@@ -42,7 +44,7 @@ export default function DashboardPage() {
             </Card>
             <Card className="hover:shadow-xl transition-shadow">
               <CardHeader>
-                <Settings className="mx-auto h-12 w-12 text-secondary-foreground" />
+                <Settings className="mx-auto h-12 w-12 text-secondary-foreground" /> {/* Corrected class name for icon color */}
                 <CardTitle className="text-xl mt-2">Settings</CardTitle>
               </CardHeader>
               <CardContent>
@@ -52,8 +54,8 @@ export default function DashboardPage() {
             </Card>
           </div>
            <div className="text-center mt-10">
-              <Button size="lg" asChild>
-                  <Link href="/ai-tests">Explore AI Tests</Link>
+              <Button size="lg" asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                  <Link href="/ai-tests"> <ExploreIcon className="mr-2 h-5 w-5" /> Explore AI Tests</Link>
               </Button>
           </div>
         </CardContent>
