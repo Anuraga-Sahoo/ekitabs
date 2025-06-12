@@ -32,14 +32,15 @@ interface NavItem {
   href: string;
   label: string;
   icon: React.ElementType;
-  iconClass?: string; // Added to allow specific class for AI group icons
+  iconClass?: string; 
 }
 
 const topLevelNavItems: NavItem[] = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/previous-year-tests', label: 'Previous Year Test', icon: NotebookPen },
-  // AI Powered Tests will be a group below
+  { href: '/new-mock-test', label: 'New Mock Test', icon: PencilRuler },
+  { href: '/new-practice-test', label: 'New Practice Test', icon: Target },
   { href: '/test-history', label: 'Test History', icon: History },
 ];
 
@@ -47,8 +48,6 @@ const aiTestNavItems: NavItem[] = [
   { href: '/ai-tests', label: 'Overview', icon: Sparkles, iconClass: "h-3.5 w-3.5 opacity-80" },
   { href: '/mock-test', label: 'AI Mock Test', icon: PencilRuler, iconClass: "h-3.5 w-3.5 opacity-80" },
   { href: '/practice-test', label: 'AI Practice Test', icon: BookOpenText, iconClass: "h-3.5 w-3.5 opacity-80" },
-  { href: '/new-mock-test', label: 'New Mock Test', icon: PencilRuler, iconClass: "h-3.5 w-3.5 opacity-80" },
-  { href: '/new-practice-test', label: 'New Practice Test', icon: Target, iconClass: "h-3.5 w-3.5 opacity-80" },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -71,7 +70,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Link>
           </SidebarHeader>
           <SidebarContent className="p-0">
-            <SidebarMenu className="p-2 space-y-2.5"> {/* Increased spacing */}
+            <SidebarMenu className="p-2 space-y-2.5"> 
               {topLevelNavItems.map((item) => (
                   <SidebarMenuItem key={item.href} className="p-0">
                     <SidebarMenuButton
@@ -103,7 +102,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       <SidebarMenuItem key={item.href} className="p-0">
                         <SidebarMenuButton
                            isActive={pathname === item.href || pathname.startsWith(item.href + '/')}
-                           className="w-full justify-start text-sm pl-[1.125rem] group-data-[state=collapsed]:pl-2" // Indented, adjusted for collapsed
+                           className="w-full justify-start text-sm pl-[1.125rem] group-data-[state=collapsed]:pl-2" 
                            asChild
                            tooltip={{ children: item.label, side: 'right', align: 'center' }}
                         >
