@@ -53,8 +53,8 @@ body {
     --sidebar-foreground: var(--foreground);
     --sidebar-primary: var(--primary);
     --sidebar-primary-foreground: var(--primary-foreground);
-    --sidebar-accent: var(--accent);
-    --sidebar-accent-foreground: var(--accent-foreground);
+    --sidebar-accent: var(--secondary); /* Changed from var(--accent) */
+    --sidebar-accent-foreground: var(--primary); /* Changed from var(--accent-foreground) */
     --sidebar-border: var(--border);
     --sidebar-ring: var(--ring);
   }
@@ -102,8 +102,8 @@ body {
     --sidebar-foreground: var(--foreground);
     --sidebar-primary: var(--primary);
     --sidebar-primary-foreground: var(--primary-foreground);
-    --sidebar-accent: var(--accent);
-    --sidebar-accent-foreground: var(--accent-foreground);
+    --sidebar-accent: var(--secondary); /* Changed from var(--accent) */
+    --sidebar-accent-foreground: var(--primary); /* Changed from var(--accent-foreground) */
     --sidebar-border: var(--border);
     --sidebar-ring: var(--ring);
   }
