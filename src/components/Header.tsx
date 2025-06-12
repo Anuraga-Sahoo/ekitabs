@@ -37,22 +37,23 @@ interface DropdownItemConfig {
   icon: React.ElementType;
 }
 
+// Define allNavItems as an empty array to remove the specified links
 const allNavItems: NavItemConfig[] = [
-  { href: '/', label: 'Home', icon: Home, requiresAuth: false },
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, requiresAuth: true },
-  {
-    label: 'AI Powered Test',
-    icon: Sparkles,
-    isDropdown: true,
-    activePaths: ['/mock-test', '/practice-test', '/ai-tests'],
-    dropdownItems: [
-      { href: '/ai-tests', label: 'Overview', icon: Sparkles },
-      { href: '/mock-test', label: 'AI Mock Test', icon: PencilRuler },
-      { href: '/practice-test', label: 'AI Practice Test', icon: BookOpenText },
-    ],
-    requiresAuth: true,
-  },
-  { href: '/test-history', label: 'History', icon: History, requiresAuth: true },
+  // { href: '/', label: 'Home', icon: Home, requiresAuth: false }, // Removed
+  // { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, requiresAuth: true }, // Removed
+  // { // Removed
+  //   label: 'AI Powered Test',
+  //   icon: Sparkles,
+  //   isDropdown: true,
+  //   activePaths: ['/mock-test', '/practice-test', '/ai-tests'],
+  //   dropdownItems: [
+  //     { href: '/ai-tests', label: 'Overview', icon: Sparkles },
+  //     { href: '/mock-test', label: 'AI Mock Test', icon: PencilRuler },
+  //     { href: '/practice-test', label: 'AI Practice Test', icon: BookOpenText },
+  //   ],
+  //   requiresAuth: true,
+  // },
+  // { href: '/test-history', label: 'History', icon: History, requiresAuth: true }, // Removed
 ];
 
 export default function Header() {
