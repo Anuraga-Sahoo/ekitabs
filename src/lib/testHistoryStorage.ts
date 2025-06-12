@@ -4,7 +4,6 @@
 import type { TestResultItem } from '@/types';
 import clientPromise from '@/lib/mongodb';
 import { Collection, Db, MongoClient } from 'mongodb';
-import { getUserIdFromAuthToken } from './authUtilsOnServer';
 
 const TEST_HISTORY_COLLECTION = 'test_history';
 
@@ -19,21 +18,13 @@ async function getTestHistoryCollection(): Promise<Collection<TestResultItem>> {
 }
 
 /**
- * Saves a new test result to MongoDB, associated with the current user.
+ * Saves a new test result to MongoDB.
  */
-export async function saveTestResult(result: Omit<TestResultItem, 'userId'>): Promise<void> {
-  const userId = await getUserIdFromAuthToken();
-  if (!userId) {
-    console.error("User not authenticated. Cannot save test result.");
-    throw new Error("User not authenticated. Failed to save test result.");
-  }
-  
-  const resultWithUser: TestResultItem = { ...result, userId };
-
+export async function saveTestResult(result: TestResultItem): Promise<void> {
   try {
     const collection = await getTestHistoryCollection();
-    await collection.insertOne(resultWithUser);
-    console.log(`Test result ${resultWithUser.testAttemptId} for user ${userId} saved to MongoDB.`);
+    await collection.insertOne(result);
+    console.log(`Test result ${result.testAttemptId} saved to MongoDB.`);
   } catch (error) {
     const originalErrorMessage = error instanceof Error ? error.message : String(error);
     console.error("Error saving test result to MongoDB:", originalErrorMessage);
@@ -42,36 +33,30 @@ export async function saveTestResult(result: Omit<TestResultItem, 'userId'>): Pr
 }
 
 /**
- * Updates an existing test result in MongoDB for the current user.
+ * Updates an existing test result in MongoDB.
  */
-export async function updateTestResult(testAttemptId: string, updatedData: Omit<TestResultItem, 'userId' | 'testAttemptId'>): Promise<void> {
-  const userId = await getUserIdFromAuthToken();
-  if (!userId) {
-    console.error("User not authenticated. Cannot update test result.");
-    throw new Error("User not authenticated. Failed to update test result.");
-  }
-
-  const payloadToSet: Partial<TestResultItem> = { ...updatedData, userId };
-  // @ts-ignore
-  delete payloadToSet._id; // Prevent trying to set MongoDB's _id
-  // @ts-ignore
-  delete payloadToSet.testAttemptId; // testAttemptId is used in query, not $set
-
+export async function updateTestResult(testAttemptId: string, updatedData: TestResultItem): Promise<void> {
   try {
     const collection = await getTestHistoryCollection();
+    // Prepare data for $set, ensuring _id is not part of it, and testAttemptId isn't changed by $set
+    // The updatedData object should contain the testAttemptId matching the query.
+    const payloadToSet = { ...updatedData };
+    // @ts-ignore
+    delete payloadToSet._id; // Prevent trying to set MongoDB's _id
+
     const result = await collection.updateOne(
-      { testAttemptId: testAttemptId, userId: userId }, // Ensure update is for the correct user
+      { testAttemptId: testAttemptId },
       { $set: payloadToSet }
     );
 
     if (result.matchedCount === 0) {
-      console.warn(`Test result ${testAttemptId} for user ${userId} not found for update in MongoDB.`);
-      throw new Error(`Test history entry with ID ${testAttemptId} not found for your account. Could not update.`);
+      console.warn(`Test result ${testAttemptId} not found for update in MongoDB.`);
+      throw new Error(`Test history entry with ID ${testAttemptId} not found. Could not update.`);
     }
     if (result.modifiedCount === 0 && result.matchedCount === 1) {
-      console.log(`Test result ${testAttemptId} for user ${userId} was matched but no fields were different, so no update was performed.`);
+      console.log(`Test result ${testAttemptId} was matched but no fields were different, so no update was performed.`);
     } else {
-      console.log(`Test result ${testAttemptId} for user ${userId} updated in MongoDB.`);
+      console.log(`Test result ${testAttemptId} updated in MongoDB.`);
     }
   } catch (error) {
     const originalErrorMessage = error instanceof Error ? error.message : String(error);
@@ -85,22 +70,16 @@ export async function updateTestResult(testAttemptId: string, updatedData: Omit<
 
 
 /**
- * Retrieves test history for the current user from MongoDB, sorted by date completed descending.
+ * Retrieves all test history from MongoDB, sorted by date completed descending.
  */
 export async function getTestHistory(): Promise<TestResultItem[]> {
-  const userId = await getUserIdFromAuthToken();
-  if (!userId) {
-    console.log("User not authenticated. Returning empty test history.");
-    return []; // Or throw error, depending on desired behavior for unauthenticated access
-  }
-
   try {
     const collection = await getTestHistoryCollection();
     const history = await collection
-      .find({ userId: userId }, { projection: { _id: 0 } }) 
+      .find({}, { projection: { _id: 0 } }) 
       .sort({ dateCompleted: -1 }) 
       .toArray();
-    console.log(`Retrieved ${history.length} test history items for user ${userId} from MongoDB.`);
+    console.log(`Retrieved ${history.length} test history items from MongoDB.`);
     return history as TestResultItem[];
   } catch (error) {
     const originalErrorMessage = error instanceof Error ? error.message : String(error);
@@ -110,22 +89,16 @@ export async function getTestHistory(): Promise<TestResultItem[]> {
 }
 
 /**
- * Deletes a specific test result by its testAttemptId from MongoDB for the current user.
+ * Deletes a specific test result by its testAttemptId from MongoDB.
  */
 export async function deleteTestResult(testAttemptId: string): Promise<void> {
-  const userId = await getUserIdFromAuthToken();
-  if (!userId) {
-    console.error("User not authenticated. Cannot delete test result.");
-    throw new Error("User not authenticated. Failed to delete test result.");
-  }
-
   try {
     const collection = await getTestHistoryCollection();
-    const result = await collection.deleteOne({ testAttemptId: testAttemptId, userId: userId });
+    const result = await collection.deleteOne({ testAttemptId: testAttemptId });
     if (result.deletedCount === 1) {
-      console.log(`Test result ${testAttemptId} for user ${userId} deleted from MongoDB.`);
+      console.log(`Test result ${testAttemptId} deleted from MongoDB.`);
     } else {
-      console.warn(`Test result ${testAttemptId} for user ${userId} not found for deletion in MongoDB.`);
+      console.warn(`Test result ${testAttemptId} not found for deletion in MongoDB.`);
     }
   } catch (error) {
     const originalErrorMessage = error instanceof Error ? error.message : String(error);
@@ -135,19 +108,14 @@ export async function deleteTestResult(testAttemptId: string): Promise<void> {
 }
 
 /**
- * Clears all test history from MongoDB for the current user.
+ * Clears all test history from MongoDB.
+ * USE WITH CAUTION.
  */
 export async function clearTestHistory(): Promise<void> {
-  const userId = await getUserIdFromAuthToken();
-  if (!userId) {
-    console.error("User not authenticated. Cannot clear test history.");
-    throw new Error("User not authenticated. Failed to clear test history.");
-  }
-
   try {
     const collection = await getTestHistoryCollection();
-    await collection.deleteMany({ userId: userId });
-    console.log(`All test history cleared for user ${userId} from MongoDB.`);
+    await collection.deleteMany({});
+    console.log("All test history cleared from MongoDB.");
   } catch (error) {
     const originalErrorMessage = error instanceof Error ? error.message : String(error);
     console.error("Error clearing test history from MongoDB:", originalErrorMessage);

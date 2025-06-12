@@ -34,7 +34,6 @@ export interface TestScore {
 export interface TestResultItem {
   testAttemptId: string; // Unique ID for this specific attempt
   originalQuizId: string; // ID of the original set of questions used for this attempt
-  userId: string; // ID of the user who took this test
   testType: 'mock' | 'practice';
   testTitle: string; // e.g., "Mock Test" or "Practice: Physics - Kinematics"
   dateCompleted: string;
@@ -47,11 +46,9 @@ export interface TestResultItem {
 // New type for storing the quiz questions themselves
 export interface StoredQuiz {
   id: string; // This is the originalQuizId
-  userId: string; // ID of the user who generated this quiz
   testType: 'mock' | 'practice';
   questions: AppQuestion[]; // The pristine set of questions
   config?: PracticeTestConfig; // For practice tests
   createdAt: string;
   title: string;
 }
-
