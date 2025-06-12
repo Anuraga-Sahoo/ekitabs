@@ -21,6 +21,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Home, LayoutDashboard, Sparkles, BookOpenText, PencilRuler, History, Menu as MenuIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const TestPrepAiLogo = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7 text-sidebar-primary group-data-[state=collapsed]:text-primary">
@@ -47,7 +48,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   {
     label: 'AI Powered Tests',
-    icon: Sparkles, // Icon for the group itself
+    icon: Sparkles, 
     isGroup: true,
     subItems: [
       { href: '/ai-tests', label: 'Overview', icon: Sparkles },
@@ -78,23 +79,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Link>
           </SidebarHeader>
           <SidebarContent className="p-0">
-            <SidebarMenu className="p-2 space-y-1">
+            <SidebarMenu className="p-2 space-y-2"> {/* Increased space-y for main menu items */}
               {navItems.map((item) => {
                 if (item.isGroup && item.subItems) {
-                  // Check if any subItem is active to make the group label potentially active/highlighted
                   const isGroupActive = item.subItems.some(subItem => pathname === subItem.href || pathname.startsWith(subItem.href + '/'));
                   return (
                     <SidebarGroup key={item.label} className="p-0">
                       <SidebarGroupLabel className="px-2 py-1.5 text-xs text-sidebar-foreground/70 group-data-[state=collapsed]:hidden flex items-center">
                         <item.icon className="mr-2 h-4 w-4" /> {item.label}
                       </SidebarGroupLabel>
-                      {/* Tooltip for collapsed group */}
-                       <div className="group-data-[state=expanded]:hidden text-center my-1">
+                       <div className="group-data-[expanded]:hidden text-center my-1">
                          <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 mx-auto pointer-events-none">
-                                      <item.icon className="h-5 w-5 text-muted-foreground" />
+                                      <item.icon className="h-4 w-4 text-muted-foreground" /> {/* Standardized icon size */}
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent side="right" align="center">
@@ -103,8 +102,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             </Tooltip>
                          </TooltipProvider>
                        </div>
-                      <SidebarGroupContent className="pl-0 group-data-[state=collapsed]:mt-0"> {/* Removed pl-0, SidebarMenuButton will handle padding */}
-                        <SidebarMenu className="space-y-0.5">
+                      <SidebarGroupContent className="group-data-[state=collapsed]:mt-0"> {/* Removed pl-0 from here */}
+                        <SidebarMenu className="space-y-1 group-data-[state=expanded]:pl-4"> {/* Added pl-4 for indentation when expanded, kept space-y-1 for tighter sub-items */}
                           {item.subItems.map((subItem) => (
                             <SidebarMenuItem key={subItem.href} className="p-0">
                               <SidebarMenuButton
@@ -143,12 +142,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               })}
             </SidebarMenu>
           </SidebarContent>
-          {/* Optional SidebarFooter */}
         </Sidebar>
 
         <SidebarInset className="flex-1 flex flex-col overflow-x-hidden">
           <header className="bg-card border-b p-0 md:p-3 sticky top-0 z-30 flex items-center justify-between h-[60px] md:hidden">
-            {/* Mobile Header Content - SidebarTrigger is provided by Sidebar component for mobile */}
             <div className="flex items-center gap-2 px-3">
                 <Link href="/dashboard" className="flex items-center gap-2">
                   <TestPrepAiLogo />
@@ -166,8 +163,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
-
-// Helper components from ui/tooltip if not already globally available via SidebarProvider
-// For standalone use, ensure TooltipProvider, Tooltip, TooltipTrigger, TooltipContent are imported
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
