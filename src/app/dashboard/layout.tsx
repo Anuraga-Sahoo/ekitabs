@@ -41,7 +41,7 @@ const topLevelNavItems: NavItem[] = [
   { href: '/previous-year-tests', label: 'Previous Year Test', icon: NotebookPen },
   { href: '/new-mock-test', label: 'New Mock Test', icon: PencilRuler },
   { href: '/new-practice-test', label: 'New Practice Test', icon: Target },
-  { href: '/test-history', label: 'Test History', icon: History },
+  // Test History moved from here
 ];
 
 const aiTestNavItems: NavItem[] = [
@@ -49,6 +49,9 @@ const aiTestNavItems: NavItem[] = [
   { href: '/mock-test', label: 'AI Mock Test', icon: PencilRuler, iconClass: "h-3.5 w-3.5 opacity-80" },
   { href: '/practice-test', label: 'AI Practice Test', icon: BookOpenText, iconClass: "h-3.5 w-3.5 opacity-80" },
 ];
+
+const testHistoryNavItem: NavItem = { href: '/test-history', label: 'Test History', icon: History };
+
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -116,6 +119,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
+              
+              {/* Test History Item (Moved here) */}
+              <SidebarMenuItem className="p-0">
+                <SidebarMenuButton
+                  isActive={pathname === testHistoryNavItem.href || pathname.startsWith(testHistoryNavItem.href + '/')}
+                  className="w-full justify-start text-sm"
+                  asChild
+                  tooltip={{ children: testHistoryNavItem.label, side: 'right', align: 'center' }}
+                >
+                  <Link href={testHistoryNavItem.href}>
+                    <testHistoryNavItem.icon />
+                    <span className="group-data-[state=collapsed]:hidden">{testHistoryNavItem.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
 
             </SidebarMenu>
           </SidebarContent>
