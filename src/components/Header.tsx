@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { BookOpenText, History, Home, PencilRuler, Sparkles, ChevronDown, LogIn, LogOut, UserPlus, Menu, LayoutDashboard } from 'lucide-react';
+import { LogIn, LogOut, UserPlus, Menu, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,7 @@ import { useAuth } from '@/hooks/useAuth';
 import * as React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import NotificationBell from './NotificationBell'; // Import NotificationBell
 
 
 interface NavItemConfig {
@@ -37,24 +38,7 @@ interface DropdownItemConfig {
   icon: React.ElementType;
 }
 
-// Define allNavItems as an empty array to remove the specified links
-const allNavItems: NavItemConfig[] = [
-  // { href: '/', label: 'Home', icon: Home, requiresAuth: false }, // Removed
-  // { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, requiresAuth: true }, // Removed
-  // { // Removed
-  //   label: 'AI Powered Test',
-  //   icon: Sparkles,
-  //   isDropdown: true,
-  //   activePaths: ['/mock-test', '/practice-test', '/ai-tests'],
-  //   dropdownItems: [
-  //     { href: '/ai-tests', label: 'Overview', icon: Sparkles },
-  //     { href: '/mock-test', label: 'AI Mock Test', icon: PencilRuler },
-  //     { href: '/practice-test', label: 'AI Practice Test', icon: BookOpenText },
-  //   ],
-  //   requiresAuth: true,
-  // },
-  // { href: '/test-history', label: 'History', icon: History, requiresAuth: true }, // Removed
-];
+const allNavItems: NavItemConfig[] = [];
 
 export default function Header() {
   const pathname = usePathname();
@@ -97,7 +81,6 @@ export default function Header() {
         >
           <item.icon className="h-4 w-4" />
           <span className={isMobile ? "ml-2" : "sm:inline ml-2"}>{item.label}</span>
-          <ChevronDown className="h-4 w-4 ml-auto md:ml-1 sm:ml-2 opacity-70" />
         </Button>
       );
 
@@ -177,7 +160,7 @@ export default function Header() {
   };
 
 
-  if (isLoading) {
+  if (isLoading && !isLoggedIn) { // Show skeleton only if loading and not already logged in (to avoid flicker)
     return (
       <header className="bg-background text-foreground shadow-md sticky top-0 z-50 border-b">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
@@ -219,43 +202,46 @@ export default function Header() {
                 React.cloneElement(renderNavItem(item, false), { key: item.href || item.label })
             )}
             {isLoggedIn ? (
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                        {getInitials(userName, userEmail)}
-                    </AvatarFallback>
-                    </Avatar>
-                </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none truncate">{displayName}</p>
-                    {userEmail && <p className="text-xs leading-none text-muted-foreground truncate">{userEmail}</p>}
-                    </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                 <DropdownMenuItem asChild>
-                    <Link href="/dashboard" className="flex items-center gap-2 w-full cursor-pointer">
-                        <LayoutDashboard className="h-4 w-4" />
-                        <span>Dashboard</span>
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                    <Link href="/profile" className="flex items-center gap-2 w-full cursor-pointer">
-                        <UserPlus className="h-4 w-4" />
-                        <span>Profile</span>
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="cursor-pointer">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center space-x-1">
+                <NotificationBell />
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                        <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-primary text-primary-foreground">
+                            {getInitials(userName, userEmail)}
+                        </AvatarFallback>
+                        </Avatar>
+                    </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                        <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none truncate">{displayName}</p>
+                        {userEmail && <p className="text-xs leading-none text-muted-foreground truncate">{userEmail}</p>}
+                        </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                        <Link href="/dashboard" className="flex items-center gap-2 w-full cursor-pointer">
+                            <LayoutDashboard className="h-4 w-4" />
+                            <span>Dashboard</span>
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                        <Link href="/profile" className="flex items-center gap-2 w-full cursor-pointer">
+                            <UserPlus className="h-4 w-4" />
+                            <span>Profile</span>
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout} className="cursor-pointer">
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Log out</span>
+                    </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
             ) : (
             <>
                 <Button variant="ghost" asChild className="text-sm font-medium text-foreground hover:bg-muted/50 hover:text-primary">
@@ -274,18 +260,19 @@ export default function Header() {
             )}
         </nav>
 
-        <div className="md:hidden">
+        <div className="md:hidden flex items-center">
+          {isLoggedIn && <NotificationBell />}
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="ml-2">
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">Open menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-full max-w-xs p-0 flex flex-col">
                 <SheetHeader className="p-4 border-b">
-                    <SheetTitle className="sr-only">Main Navigation</SheetTitle> 
-                    <SheetClose asChild> 
+                  <SheetTitle className="sr-only">Main Navigation Mobile</SheetTitle>
+                  <SheetClose asChild> 
                         <Link href="/" className="text-xl font-bold tracking-tight flex items-center gap-2 text-primary">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 15.08L6 12.58l1.41-1.41L10.5 15.25l6.09-6.09L18 10.58l-7.5 7.5zM12 4c1.93 0 3.5 1.57 3.5 3.5S13.93 11 12 11s-3.5-1.57-3.5-3.5S10.07 4 12 4z"/>
@@ -303,6 +290,14 @@ export default function Header() {
                 <div className="mt-auto p-4 border-t">
                   {isLoggedIn ? (
                     <>
+                      <SheetClose asChild>
+                        <Link href="/dashboard" className="w-full">
+                             <Button variant="ghost" className="w-full justify-start text-sm font-medium mb-2">
+                                <LayoutDashboard className="mr-2 h-4 w-4" />
+                                <span>Dashboard</span>
+                            </Button>
+                        </Link>
+                      </SheetClose>
                       <SheetClose asChild>
                         <Link href="/profile" className="w-full">
                             <Button variant="ghost" className="w-full justify-start text-sm font-medium mb-2">
