@@ -59,8 +59,9 @@ export default function NotificationBell() {
         const response = await fetch('/api/notifications/mark-all-read', { method: 'POST' });
         if (response.ok) {
           setUnreadCount(0); // Optimistically update
+          // Update isRead status for all currently displayed notifications
           setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-          // Optionally, refetch to ensure consistency, though optimistic update is usually fine here.
+          // Optionally, refetch to ensure consistency
           // fetchNotifications(); 
         } else {
           toast({ title: "Error", description: "Could not mark notifications as read.", variant: "destructive"});
@@ -102,10 +103,25 @@ export default function NotificationBell() {
             </DropdownMenuItem>
           )}
           {notifications.map((notification) => (
-            <DropdownMenuItem key={notification._id} asChild className={cn("cursor-pointer flex flex-col items-start p-2.5 hover:bg-muted/50", !notification.isRead && isDropdownOpen && "font-normal", !notification.isRead && !isDropdownOpen && "font-semibold")}>
-              <Link href={notification.link || "#"} className="w-full" onClick={() => { if (!notification.link) setIsDropdownOpen(false); }}>
-                <p className="text-sm leading-snug whitespace-normal break-words">
-                  {notification.message}
+            <DropdownMenuItem 
+              key={notification._id} 
+              asChild 
+              className={cn(
+                "cursor-pointer flex flex-col items-start p-2.5 hover:bg-muted/50",
+                !notification.isRead && isDropdownOpen && "font-normal", // if dropdown open, all are considered "read" optimistically
+                !notification.isRead && !isDropdownOpen && "font-semibold bg-primary/5 dark:bg-primary/10" // Highlight unread when dropdown is closed
+              )}
+            >
+              <Link 
+                href={notification.link || "#"} 
+                className="w-full" 
+                onClick={() => { if (!notification.link) setIsDropdownOpen(false); }}
+              >
+                <p className="text-sm font-medium leading-snug whitespace-normal break-words">
+                  {notification.title}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5 whitespace-normal break-words line-clamp-2">
+                  {notification.contentHTML}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}

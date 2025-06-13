@@ -58,9 +58,10 @@ export interface StoredQuiz {
 export interface Notification {
   _id: string; 
   userId: string;
-  message: string;
+  title: string;
+  contentHTML: string; 
   link?: string;
   createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
   isRead: boolean;
 }
-

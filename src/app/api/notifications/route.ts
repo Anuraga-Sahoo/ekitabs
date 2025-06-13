@@ -20,17 +20,23 @@ export async function GET(request: NextRequest) {
   try {
     const collection = await getNotificationsCollection();
     const notifications = await collection
-      .find({ userId })
-      .sort({ createdAt: -1 })
+      .find({ userId }) // Ensure we only get notifications for the logged-in user
+      .sort({ createdAt: -1 }) // Sort by creation date, newest first
       .limit(20) // Limit to most recent 20 notifications
       .toArray();
 
     const unreadCount = await collection.countDocuments({ userId, isRead: false });
 
-    // Ensure _id is stringified
+    // Ensure _id is stringified and other fields match the Notification type
     const processedNotifications = notifications.map(n => ({
-      ...n,
       _id: n._id.toString(),
+      userId: n.userId,
+      title: n.title,
+      contentHTML: n.contentHTML,
+      link: n.link,
+      createdAt: n.createdAt,
+      updatedAt: n.updatedAt,
+      isRead: n.isRead,
     }));
 
     return NextResponse.json({ notifications: processedNotifications, unreadCount }, { status: 200 });

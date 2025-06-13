@@ -2,13 +2,20 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { getUserIdFromAuthToken } from '@/lib/authUtilsOnServer';
-import type { Notification } from '@/types';
+import type { Notification } from '@/types'; // Ensure Notification type is imported if needed, though not strictly for this operation
 import type { Collection, Db, MongoClient } from 'mongodb';
 
-async function getNotificationsCollection(): Promise<Collection<Notification>> {
+// Define a minimal type for the update operation if Notification type is too broad or not needed
+interface NotificationDocument {
+  userId: string;
+  isRead: boolean;
+  // include other fields if necessary for querying or operations, but not for $set
+}
+
+async function getNotificationsCollection(): Promise<Collection<NotificationDocument>> {
   const client: MongoClient = await clientPromise;
   const db: Db = client.db();
-  return db.collection<Notification>('notifications');
+  return db.collection<NotificationDocument>('notifications');
 }
 
 export async function POST(request: NextRequest) {
@@ -20,8 +27,8 @@ export async function POST(request: NextRequest) {
   try {
     const collection = await getNotificationsCollection();
     const result = await collection.updateMany(
-      { userId, isRead: false },
-      { $set: { isRead: true } }
+      { userId: userId, isRead: false }, // Filter by userId and only unread notifications
+      { $set: { isRead: true, updatedAt: new Date().toISOString() } } // Mark as read and update timestamp
     );
 
     return NextResponse.json({ message: "Notifications marked as read.", updatedCount: result.modifiedCount }, { status: 200 });
