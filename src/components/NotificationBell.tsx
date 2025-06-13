@@ -54,21 +54,27 @@ export default function NotificationBell() {
 
   const handleOpenChange = async (open: boolean) => {
     setIsDropdownOpen(open);
-    if (open && unreadCount > 0) {
-      try {
-        const response = await fetch('/api/notifications/mark-all-read', { method: 'POST' });
-        if (response.ok) {
-          setUnreadCount(0); // Optimistically update
-          // Update isRead status for all currently displayed notifications
-          setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-          // Optionally, refetch to ensure consistency
-          // fetchNotifications(); 
-        } else {
-          toast({ title: "Error", description: "Could not mark notifications as read.", variant: "destructive"});
+    if (open) { // When dropdown is opening
+      await fetchNotifications(); // Fetch latest notifications first
+      // Check unreadCount based on the freshly fetched data or existing state if fetch didn't update it yet.
+      // The unreadCount state might not be updated yet if fetchNotifications is still running.
+      // A more robust way would be to use the count from the fetchNotifications response if possible,
+      // or rely on the current unreadCount state and accept a slight delay.
+      // For now, let's use the current unreadCount state.
+      if (unreadCount > 0) { 
+        try {
+          const response = await fetch('/api/notifications/mark-all-read', { method: 'POST' });
+          if (response.ok) {
+            setUnreadCount(0); 
+            // Optimistically update isRead status for all currently displayed notifications
+            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+          } else {
+            toast({ title: "Error", description: "Could not mark notifications as read.", variant: "destructive"});
+          }
+        } catch (error) {
+          console.error("Error marking notifications as read:", error);
+          toast({ title: "Error", description: "Failed to communicate with server to mark notifications.", variant: "destructive"});
         }
-      } catch (error) {
-        console.error("Error marking notifications as read:", error);
-        toast({ title: "Error", description: "Failed to communicate with server.", variant: "destructive"});
       }
     }
   };
@@ -84,7 +90,7 @@ export default function NotificationBell() {
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
             </span>
           )}
-          {isLoading && unreadCount === 0 && ( // Show loader only if no unread items initially
+          {isLoading && unreadCount === 0 && ( 
              <Loader2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-4 animate-spin" />
           )}
           <span className="sr-only">View notifications</span>
@@ -108,14 +114,13 @@ export default function NotificationBell() {
               asChild 
               className={cn(
                 "cursor-pointer flex flex-col items-start p-2.5 hover:bg-muted/50",
-                !notification.isRead && isDropdownOpen && "font-normal", // if dropdown open, all are considered "read" optimistically
-                !notification.isRead && !isDropdownOpen && "font-semibold bg-primary/5 dark:bg-primary/10" // Highlight unread when dropdown is closed
+                !notification.isRead && isDropdownOpen && "font-normal",
+                !notification.isRead && !isDropdownOpen && "font-semibold bg-primary/5 dark:bg-primary/10"
               )}
             >
               <Link 
                 href={notification.link || "#"} 
-                className="w-full" 
-                onClick={() => { if (!notification.link) setIsDropdownOpen(false); }}
+                className="w-full"
               >
                 <p className="text-sm font-medium leading-snug whitespace-normal break-words">
                   {notification.title}
@@ -143,3 +148,4 @@ export default function NotificationBell() {
     </DropdownMenu>
   );
 }
+
