@@ -20,11 +20,11 @@ export async function GET(request: NextRequest) {
   try {
     const collection = await getNotificationsCollection();
     
-    // Find notifications where the current user's ID is in the userIds array
+    // Fetch up to 50 most recent notifications for the user
     const notificationsFromDb = await collection
       .find({ userIds: userId }) 
       .sort({ createdAt: -1 }) 
-      .limit(20) 
+      .limit(50) 
       .toArray();
 
     let unreadCount = 0;
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
         title: doc.title,
         contentHTML: doc.contentHTML,
         link: doc.link,
-        createdAt: doc.createdAt.toISOString(), // Use main notification's createdAt
+        createdAt: doc.createdAt.toISOString(), 
         isRead: isReadForCurrentUser,
       };
     });
@@ -53,3 +53,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: "Internal server error while fetching notifications", error: errorMessage }, { status: 500 });
   }
 }
+

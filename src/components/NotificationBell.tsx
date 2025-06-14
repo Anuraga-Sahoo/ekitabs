@@ -14,14 +14,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { ClientNotification } from '@/types'; // Updated to ClientNotification
+import type { ClientNotification } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import NotificationDialog from './NotificationDialog'; 
+import AllNotificationsDialog from './AllNotificationsDialog'; // Import the new dialog
 
 export default function NotificationBell() {
-  const [notifications, setNotifications] = useState<ClientNotification[]>([]); // Use ClientNotification
+  const [notifications, setNotifications] = useState<ClientNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -29,8 +30,9 @@ export default function NotificationBell() {
   const mounted = useRef(false);
   const router = useRouter(); 
 
-  const [selectedNotification, setSelectedNotification] = useState<ClientNotification | null>(null);
-  const [isNotificationDialogOpen, setIsNotificationDialogOpen] = useState(false);
+  const [selectedNotificationForContent, setSelectedNotificationForContent] = useState<ClientNotification | null>(null);
+  const [isContentNotificationDialogOpen, setIsContentNotificationDialogOpen] = useState(false);
+  const [isAllNotificationsDialogOpen, setIsAllNotificationsDialogOpen] = useState(false);
 
   useEffect(() => {
     mounted.current = true;
@@ -75,8 +77,6 @@ export default function NotificationBell() {
 
   const markNotificationsAsReadOnServer = useCallback(async () => {
     if (!mounted.current) return;
-    // Only call if there are genuinely unread items based on current client state or if we want to ensure backend is synced.
-    // The API will handle the logic of what to mark.
     try {
       const markReadResponse = await fetch('/api/notifications/mark-all-read', { method: 'POST' });
       if (!markReadResponse.ok) {
@@ -84,9 +84,6 @@ export default function NotificationBell() {
         if (mounted.current) {
           toast({ title: "Error", description: errorData.message || "Could not mark notifications as read.", variant: "destructive"});
         }
-      } else {
-        // Successfully marked on server, client state unreadCount will be updated on next fetch or optimistically.
-        // For now, let fetch handle it.
       }
     } catch (error) {
       console.error("Error marking notifications as read:", error);
@@ -96,32 +93,33 @@ export default function NotificationBell() {
     }
   }, [toast]);
 
-
   const handleOpenChange = async (open: boolean) => {
     setIsDropdownOpen(open);
     if (open) { 
-      // Fetch fresh notifications first
       await fetchNotifications(true); 
-      // Then, if there were unread items (or just to be sure), try to mark them as read on server
-      if (unreadCount > 0 || notifications.some(n => !n.isRead)) { // Check based on potentially stale client data before server call
+      if (unreadCount > 0 || notifications.some(n => !n.isRead)) {
         await markNotificationsAsReadOnServer();
-        // Optionally, refetch after marking to get the absolute latest state, or update optimistically
-        // For simplicity, we can rely on the next automatic fetch or if the user re-opens.
-        // Or, to be more responsive:
-        await fetchNotifications(false); // Fetch again silently to update unreadCount and visuals
+        await fetchNotifications(false); 
       }
     }
   };
   
   const handleNotificationClick = (notification: ClientNotification) => {
-    setSelectedNotification(notification);
     if (notification.link) {
       router.push(notification.link);
       setIsDropdownOpen(false); 
     } else {
-      setIsNotificationDialogOpen(true);
+      setSelectedNotificationForContent(notification);
+      setIsContentNotificationDialogOpen(true);
     }
   };
+
+  const handleShowAllClick = () => {
+    setIsAllNotificationsDialogOpen(true);
+    setIsDropdownOpen(false); // Close dropdown when "Show All" is clicked
+  };
+
+  const displayedNotifications = notifications.slice(0, 10);
 
   return (
     <>
@@ -148,12 +146,12 @@ export default function NotificationBell() {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <ScrollArea className="h-[300px]">
-            {notifications.length === 0 && !isLoading && (
+            {displayedNotifications.length === 0 && !isLoading && (
               <DropdownMenuItem disabled className="justify-center text-sm text-muted-foreground py-4">
                 No new notifications
               </DropdownMenuItem>
             )}
-            {notifications.map((notification) => (
+            {displayedNotifications.map((notification) => (
               <DropdownMenuItem 
                 key={notification._id} 
                 className={cn(
@@ -174,14 +172,32 @@ export default function NotificationBell() {
                 </p>
               </DropdownMenuItem>
             ))}
+            {notifications.length > 10 && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleShowAllClick}
+                  className="justify-center text-sm text-primary hover:text-primary hover:bg-muted/50 cursor-pointer font-medium"
+                >
+                  Show All Notifications ({notifications.length})
+                </DropdownMenuItem>
+              </>
+            )}
           </ScrollArea>
         </DropdownMenuContent>
       </DropdownMenu>
 
       <NotificationDialog
-        notification={selectedNotification}
-        isOpen={isNotificationDialogOpen}
-        onOpenChange={setIsNotificationDialogOpen}
+        notification={selectedNotificationForContent}
+        isOpen={isContentNotificationDialogOpen}
+        onOpenChange={setIsContentNotificationDialogOpen}
+      />
+
+      <AllNotificationsDialog
+        notifications={notifications} // Pass all fetched notifications
+        isOpen={isAllNotificationsDialogOpen}
+        onOpenChange={setIsAllNotificationsDialogOpen}
+        onNotificationClick={handleNotificationClick} // Allow AllNotificationsDialog to use the same click handler
       />
     </>
   );
