@@ -69,7 +69,7 @@ export interface NotificationDocument {
   readStatus: Array<{ 
     userId: string; 
     isRead: boolean; 
-    lastStatusUpdate: Date; // Date object
+    lastStatusUpdate: Date; 
   }>; 
 }
 
@@ -88,7 +88,6 @@ export interface SubjectDocumentMongo {
   _id: ObjectId;
   name: string;
   imgUrl?: string;
-  // any other fields
 }
 
 // Represents the subject structure for the client
@@ -96,4 +95,40 @@ export interface Subject {
   id: string;
   name: string;
   imgUrl?: string;
+}
+
+// Represents the exam category structure in MongoDB
+export interface ExamCategoryDocumentMongo {
+  _id: ObjectId;
+  name: string;
+  description?: string;
+}
+
+// Represents the exam category structure for the client
+export interface ExamCategory {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+// Represents the exam structure in MongoDB
+export interface ExamDocumentMongo {
+  _id: ObjectId;
+  name: string;
+  categoryId: ObjectId | string; // Can be ObjectId if ref, or string if just an ID
+  quizIds: string[]; // Array of StoredQuiz IDs
+  testType: string; // e.g., "Mock", "Practice"
+  iconUrl?: string;
+  description?: string;
+}
+
+// Represents the exam structure for the client
+export interface Exam {
+  id: string;
+  name: string;
+  categoryId: string;
+  quizIds: string[];
+  testType: string;
+  iconUrl?: string;
+  description?: string;
 }
