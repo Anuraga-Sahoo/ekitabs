@@ -98,7 +98,7 @@ export interface ExamCategoryDocumentMongo {
   description?: string;
 }
 
-export interface ExamCategory {
+export interface ExamCategory { // This type can still be used if you have separate category pages/logic
   id: string;
   name: string;
   description?: string;
@@ -108,23 +108,22 @@ export interface ExamCategory {
 export interface ExamDocumentMongo {
   _id: ObjectId;
   name: string;
-  categoryId: ObjectId | string; 
+  categoryId?: ObjectId | string; // Optional if not all exams belong to a category
   quizIds: string[]; // Array of strings, each representing an ObjectId of a quiz
   iconUrl?: string;
   description?: string;
   createdAt?: Date;
   updatedAt?: Date;
-  // testType is no longer here, it's in the QuizDocumentMongo
 }
 
-// Client-side representation of an Exam (if needed, though API might return ClientQuiz directly)
+// Client-side representation of an Exam for listing in dropdowns or general use
 export interface Exam {
-  id: string;
+  id: string; // _id from ExamDocumentMongo
   name: string;
-  categoryId: string;
-  quizIds: string[]; // These would be used to fetch actual quizzes
-  iconUrl?: string;
-  description?: string;
+  // categoryId?: string; // Optional
+  // quizIds?: string[]; // Optional on client unless needed for direct processing
+  // iconUrl?: string; // Optional
+  // description?: string; // Optional
 }
 
 
@@ -137,7 +136,7 @@ export interface QuizQuestionOptionMongo {
 }
 
 export interface QuizQuestionMongo {
-  id: string; // This seems to be a client-generated ID in your example
+  id: string; 
   text: string;
   imageUrl?: string;
   marks: number;
@@ -148,7 +147,7 @@ export interface QuizQuestionMongo {
 }
 
 export interface QuizSectionMongo {
-  id: string; // This seems to be a client-generated ID
+  id: string; 
   name: string;
   questions: QuizQuestionMongo[];
 }
@@ -157,14 +156,14 @@ export interface QuizSectionMongo {
 export interface QuizDocumentMongo {
   _id: ObjectId;
   title: string;
-  testType: 'Mock' | 'Practice' | string; // Allow string for flexibility if other types exist
+  testType: 'Mock' | 'Practice' | string; 
   classId?: string | null;
   subjectId?: string | null;
   chapterId?: string | null;
   tags?: string[];
   timerMinutes?: number;
   sections: QuizSectionMongo[];
-  status: 'Draft' | 'Published' | string; // Allow string
+  status: 'Draft' | 'Published' | string; 
   createdAt: Date;
   updatedAt: Date;
 }
@@ -174,6 +173,4 @@ export interface ClientQuiz {
   id: string; // ObjectId of the quiz, converted to string
   title: string;
   iconUrl?: string; // Taken from the parent ExamDocumentMongo
-  // Potentially other fields if needed by the mock-test page later
-  // For now, keeping it minimal for the dashboard card
 }
