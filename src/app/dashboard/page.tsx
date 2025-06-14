@@ -69,14 +69,14 @@ export default function DashboardPage() {
         setIsLoadingSubjects(false);
       }
     }
-    if (isLoggedIn) { // Fetch subjects only if user is logged in
+    if (isLoggedIn) { 
         fetchSubjects();
-    } else if (!authLoading && !isLoggedIn) { // If auth is resolved and user is not logged in
-        setIsLoadingSubjects(false); // Stop loading, as there's no user to fetch for
+    } else if (!authLoading && !isLoggedIn) { 
+        setIsLoadingSubjects(false); 
         setSubjects([]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoggedIn, authLoading]); // Depend on isLoggedIn and authLoading
+  }, [isLoggedIn, authLoading]); 
 
   const handleClosePopup = () => {
     setIsPopupVisible(false);
@@ -87,7 +87,6 @@ export default function DashboardPage() {
 
   return (
     <div className="w-full h-full relative space-y-8">
-      {/* Popup Welcome Message */}
       {isPopupVisible && (
         <div 
           className={cn(
@@ -127,7 +126,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Subjects Section */}
       <section>
         <div className="flex items-center mb-6">
           <div className="w-1.5 h-8 bg-primary rounded-full mr-3"></div>
@@ -136,9 +134,9 @@ export default function DashboardPage() {
 
         {isLoadingSubjects && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {[...Array(6)].map((_, index) => (
+            {[...Array(4)].map((_, index) => ( // Show 4 skeletons for a typical row
               <Card key={index} className="p-4 rounded-lg shadow-md bg-card">
-                <Skeleton className="h-24 w-full rounded-md mb-3" />
+                <Skeleton className="h-40 w-full rounded-md mb-3" /> 
                 <Skeleton className="h-6 w-3/4 mx-auto" />
               </Card>
             ))}
@@ -166,33 +164,32 @@ export default function DashboardPage() {
         )}
 
         {!isLoadingSubjects && !subjectError && subjects.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {subjects.map((subject) => (
               <Link key={subject.id} href={`/practice-test?subject=${encodeURIComponent(subject.name)}`} passHref>
                 <Card className="group h-full flex flex-col p-0 overflow-hidden rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-card">
-                  <div className="relative w-full h-28 bg-muted flex items-center justify-center overflow-hidden">
+                  <div className="relative w-full h-40 bg-muted flex items-center justify-center overflow-hidden">
                     {subject.imgUrl ? (
                       <Image
                         src={subject.imgUrl}
                         alt={subject.name}
-                        width={200}
-                        height={100}
+                        width={400} 
+                        height={160} 
                         className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-200"
                         onError={(e) => {
-                          // Fallback for broken image URLs
                           const target = e.target as HTMLImageElement;
-                          target.onerror = null; // prevent infinite loop
-                          target.src = `https://placehold.co/200x100.png`; 
-                          target.setAttribute('data-ai-hint', subject.name.toLowerCase());
+                          target.onerror = null; 
+                          target.src = `https://placehold.co/400x160.png`; 
+                          target.setAttribute('data-ai-hint', subject.name.toLowerCase().split(" ").slice(0,2).join(" "));
                         }}
                       />
                     ) : (
                       <Image
-                        src={`https://placehold.co/200x100.png`}
+                        src={`https://placehold.co/400x160.png`}
                         alt={`${subject.name} placeholder`}
-                        width={200}
-                        height={100}
-                        className="object-contain w-auto h-auto max-h-full max-w-full"
+                        width={400}
+                        height={160}
+                        className="object-cover w-full h-full" 
                         data-ai-hint={subject.name.toLowerCase().split(" ").slice(0,2).join(" ")}
                       />
                     )}
