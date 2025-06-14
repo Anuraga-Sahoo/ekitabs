@@ -11,11 +11,11 @@ export interface AppQuestion {
 }
 
 export interface Test {
-  id: string; // This might refer to an originalQuizId if it's a predefined test
+  id: string; 
   type: 'mock' | 'practice';
   questions: AppQuestion[];
-  durationMinutes: number; // Duration in minutes
-  config?: PracticeTestConfig; // For practice tests
+  durationMinutes: number; 
+  config?: PracticeTestConfig; 
 }
 
 export interface PracticeTestConfig {
@@ -34,38 +34,36 @@ export interface TestScore {
 }
 
 export interface TestResultItem {
-  testAttemptId: string; // Unique ID for this specific attempt
-  originalQuizId: string; // ID of the original set of questions used for this attempt
-  userId: string; // ID of the user who took this test
+  testAttemptId: string; 
+  originalQuizId: string; 
+  userId: string; 
   testType: 'mock' | 'practice';
-  testTitle: string; // e.g., "Mock Test" or "Practice: Physics - Kinematics"
+  testTitle: string; 
   dateCompleted: string;
   score: TestScore;
-  questions: AppQuestion[]; // Questions with user's answers for this attempt
-  config?: PracticeTestConfig; // Stored for context, especially if practice test
-  timeTakenSeconds?: number; // Time taken by user in seconds
+  questions: AppQuestion[]; 
+  config?: PracticeTestConfig; 
+  timeTakenSeconds?: number; 
 }
 
-// New type for storing the quiz questions themselves
 export interface StoredQuiz {
-  id: string; // This is the originalQuizId
-  userId: string; // ID of the user who generated this quiz
+  id: string; 
+  userId: string; 
   testType: 'mock' | 'practice';
-  questions: AppQuestion[]; // The pristine set of questions
-  config?: PracticeTestConfig; // For practice tests
+  questions: AppQuestion[]; 
+  config?: PracticeTestConfig; 
   createdAt: string;
   title: string;
 }
 
-// Represents the notification structure in MongoDB
 export interface NotificationDocument {
   _id: ObjectId; 
   title: string;
   contentHTML: string; 
   link?: string;
-  createdAt: Date; // Main notification creation date as Date object
-  updatedAt: Date; // Main notification last update date as Date object
-  userIds: string[]; // Array of user IDs this notification is for
+  createdAt: Date; 
+  updatedAt: Date; 
+  userIds: string[]; 
   readStatus: Array<{ 
     userId: string; 
     isRead: boolean; 
@@ -73,62 +71,109 @@ export interface NotificationDocument {
   }>; 
 }
 
-// Represents the notification structure for the client
 export interface ClientNotification {
   _id: string; 
   title: string;
   contentHTML: string; 
   link?: string;
-  createdAt: string; // ISO date string (main notification creation)
-  isRead: boolean; // Derived for the current user
+  createdAt: string; 
+  isRead: boolean; 
 }
 
-// Represents the subject structure in MongoDB
 export interface SubjectDocumentMongo {
   _id: ObjectId;
   name: string;
   imgUrl?: string;
 }
 
-// Represents the subject structure for the client
 export interface Subject {
   id: string;
   name: string;
   imgUrl?: string;
 }
 
-// Represents the exam category structure in MongoDB
 export interface ExamCategoryDocumentMongo {
   _id: ObjectId;
   name: string;
   description?: string;
 }
 
-// Represents the exam category structure for the client
 export interface ExamCategory {
   id: string;
   name: string;
   description?: string;
 }
 
-// Represents the exam structure in MongoDB
+// Represents the "exams" collection structure in MongoDB
 export interface ExamDocumentMongo {
   _id: ObjectId;
   name: string;
-  categoryId: ObjectId | string; // Can be ObjectId if ref, or string if just an ID
-  quizIds: string[]; // Array of StoredQuiz IDs
-  testType: string; // e.g., "Mock", "Practice"
+  categoryId: ObjectId | string; 
+  quizIds: string[]; // Array of strings, each representing an ObjectId of a quiz
   iconUrl?: string;
   description?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  // testType is no longer here, it's in the QuizDocumentMongo
 }
 
-// Represents the exam structure for the client
+// Client-side representation of an Exam (if needed, though API might return ClientQuiz directly)
 export interface Exam {
   id: string;
   name: string;
   categoryId: string;
-  quizIds: string[];
-  testType: string;
+  quizIds: string[]; // These would be used to fetch actual quizzes
   iconUrl?: string;
   description?: string;
+}
+
+
+// Detailed structure for quizzes based on your example
+export interface QuizQuestionOptionMongo {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+  aiTags?: string[];
+}
+
+export interface QuizQuestionMongo {
+  id: string; // This seems to be a client-generated ID in your example
+  text: string;
+  imageUrl?: string;
+  marks: number;
+  negativeMarks: number;
+  explanation?: string;
+  aiTags?: string[];
+  options: QuizQuestionOptionMongo[];
+}
+
+export interface QuizSectionMongo {
+  id: string; // This seems to be a client-generated ID
+  name: string;
+  questions: QuizQuestionMongo[];
+}
+
+// Represents the "quizzes" collection structure in MongoDB
+export interface QuizDocumentMongo {
+  _id: ObjectId;
+  title: string;
+  testType: 'Mock' | 'Practice' | string; // Allow string for flexibility if other types exist
+  classId?: string | null;
+  subjectId?: string | null;
+  chapterId?: string | null;
+  tags?: string[];
+  timerMinutes?: number;
+  sections: QuizSectionMongo[];
+  status: 'Draft' | 'Published' | string; // Allow string
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Client-side representation of a Quiz, specifically for dashboard listing
+export interface ClientQuiz {
+  id: string; // ObjectId of the quiz, converted to string
+  title: string;
+  iconUrl?: string; // Taken from the parent ExamDocumentMongo
+  // Potentially other fields if needed by the mock-test page later
+  // For now, keeping it minimal for the dashboard card
 }

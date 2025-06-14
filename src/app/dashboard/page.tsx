@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Smile, X, BookOpen, Loader2, ChevronRight, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Subject, ExamCategory, Exam } from '@/types';
+import type { Subject, ExamCategory, ClientQuiz } from '@/types'; // Updated to ClientQuiz
 import Image from 'next/image';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -28,9 +28,9 @@ export default function DashboardPage() {
   const [examCategoryError, setExamCategoryError] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
-  const [exams, setExams] = useState<Exam[]>([]);
-  const [isLoadingExams, setIsLoadingExams] = useState(false);
-  const [examError, setExamError] = useState<string | null>(null);
+  const [mockQuizzes, setMockQuizzes] = useState<ClientQuiz[]>([]); // Changed from exams to mockQuizzes
+  const [isLoadingMockQuizzes, setIsLoadingMockQuizzes] = useState(false); // Changed from isLoadingExams
+  const [mockQuizError, setMockQuizError] = useState<string | null>(null); // Changed from examError
 
   const { toast } = useToast();
 
@@ -92,7 +92,7 @@ export default function DashboardPage() {
         const data = await response.json();
         setExamCategories(data.categories || []);
         if (data.categories && data.categories.length > 0) {
-          setSelectedCategoryId(data.categories[0].id); // Select first category by default
+          setSelectedCategoryId(data.categories[0].id); 
         }
       } catch (error) {
         console.error("Failed to fetch exam categories:", error);
@@ -121,36 +121,37 @@ export default function DashboardPage() {
   }, [isLoggedIn, authLoading]); 
 
   useEffect(() => {
-    async function fetchExamsForCategory() {
+    async function fetchQuizzesForCategory() {
       if (!selectedCategoryId) {
-        setExams([]);
+        setMockQuizzes([]);
         return;
       }
-      setIsLoadingExams(true);
-      setExamError(null);
+      setIsLoadingMockQuizzes(true);
+      setMockQuizError(null);
       try {
+        // The API now returns ClientQuiz[] directly, filtered for Mock & Published
         const response = await fetch(`/api/exams?categoryId=${selectedCategoryId}`);
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: `Failed to fetch exams for category ${selectedCategoryId}` }));
+          const errorData = await response.json().catch(() => ({ message: `Failed to fetch mock quizzes for category ${selectedCategoryId}` }));
           throw new Error(errorData.message || `Error: ${response.statusText}`);
         }
         const data = await response.json();
-        setExams(data.exams || []);
+        setMockQuizzes(data.quizzes || []); // Expecting data.quizzes now
       } catch (error) {
-        console.error("Failed to fetch exams:", error);
-        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred while fetching exams.";
-        setExamError(errorMessage);
+        console.error("Failed to fetch mock quizzes:", error);
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred while fetching mock quizzes.";
+        setMockQuizError(errorMessage);
         toast({
-          title: "Error Loading Exams",
+          title: "Error Loading Mock Quizzes",
           description: errorMessage,
           variant: "destructive",
         });
       } finally {
-        setIsLoadingExams(false);
+        setIsLoadingMockQuizzes(false);
       }
     }
     if (selectedCategoryId) {
-      fetchExamsForCategory();
+      fetchQuizzesForCategory();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategoryId]);
@@ -192,13 +193,9 @@ export default function DashboardPage() {
               </Button>
             </CardHeader>
             <CardContent className="pt-0 pb-3.5 px-4">
-              {authLoading ? (
-                <Skeleton className="h-4 w-full" />
-              ) : (
-                <p className="text-sm text-muted-foreground">
+                 <p className="text-sm text-muted-foreground">
                   Use the sidebar to navigate your test preparation journey.
                 </p>
-              )}
             </CardContent>
           </Card>
         </div>
@@ -327,7 +324,7 @@ export default function DashboardPage() {
         )}
 
 
-        {isLoadingExams && (
+        {isLoadingMockQuizzes && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[...Array(3)].map((_, i) => (
                     <Card key={i} className="p-4 rounded-lg shadow bg-card">
@@ -340,32 +337,32 @@ export default function DashboardPage() {
                 ))}
             </div>
         )}
-        {!isLoadingExams && examError && (
+        {!isLoadingMockQuizzes && mockQuizError && (
           <Card className="bg-destructive/10 border-destructive text-destructive-foreground p-4">
-            <CardHeader><CardTitle>Failed to load exams</CardTitle></CardHeader>
-            <CardContent><p>{examError}</p></CardContent>
+            <CardHeader><CardTitle>Failed to load mock quizzes</CardTitle></CardHeader>
+            <CardContent><p>{mockQuizError}</p></CardContent>
           </Card>
         )}
-        {!isLoadingExams && !examError && exams.length === 0 && selectedCategoryId && (
+        {!isLoadingMockQuizzes && !mockQuizError && mockQuizzes.length === 0 && selectedCategoryId && (
             <Card className="p-6 text-center text-muted-foreground">
               <BookOpen className="h-12 w-12 mx-auto mb-3 text-primary" />
-              <p className="text-lg">No mock exams found for this category.</p>
+              <p className="text-lg">No published mock quizzes found for this category.</p>
             </Card>
         )}
-        {!isLoadingExams && !examError && exams.length > 0 && (
+        {!isLoadingMockQuizzes && !mockQuizError && mockQuizzes.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {exams.map((exam) => (
-                <Link key={exam.id} href={`/mock-test?examId=${exam.id}`} passHref>
+                {mockQuizzes.map((quiz) => ( // Iterate over mockQuizzes
+                <Link key={quiz.id} href={`/mock-test?quizId=${quiz.id}`} passHref> 
                     <Card className="group p-4 rounded-lg shadow bg-card hover:shadow-md transition-shadow cursor-pointer">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                                 <Image
-                                    src={exam.iconUrl || `https://placehold.co/40x40.png`}
-                                    alt={exam.name}
+                                    src={quiz.iconUrl || `https://placehold.co/40x40.png`} // Use iconUrl from ClientQuiz
+                                    alt={quiz.title} // Use quiz.title
                                     width={40}
                                     height={40}
                                     className="rounded-full object-cover"
-                                    data-ai-hint={exam.name.toLowerCase().split(" ").slice(0,2).join(" ")}
+                                    data-ai-hint={quiz.title.toLowerCase().split(" ").slice(0,2).join(" ")}
                                     onError={(e) => {
                                         const target = e.target as HTMLImageElement;
                                         target.onerror = null;
@@ -373,7 +370,7 @@ export default function DashboardPage() {
                                     }}
                                 />
                                 <span className="text-sm font-medium text-card-foreground group-hover:text-primary">
-                                    {exam.name}
+                                    {quiz.title} 
                                 </span>
                             </div>
                             <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary" />
@@ -383,13 +380,6 @@ export default function DashboardPage() {
                 ))}
             </div>
         )}
-        {/* Optionally, add an "Explore all exams" link/button if needed, similar to the image */}
-        {/* <div className="mt-6 text-center">
-            <Button variant="link" asChild>
-                <Link href="/all-exams">Explore all exams</Link>
-            </Button>
-        </div> */}
-
       </section>
     </div>
   );
