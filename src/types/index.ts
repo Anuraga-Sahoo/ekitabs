@@ -82,3 +82,18 @@ export interface ClientNotification {
   createdAt: string; // ISO date string (main notification creation)
   isRead: boolean; // Derived for the current user
 }
+
+// Represents the subject structure in MongoDB
+export interface SubjectDocumentMongo {
+  _id: ObjectId;
+  name: string;
+  imgUrl?: string;
+  // any other fields
+}
+
+// Represents the subject structure for the client
+export interface Subject {
+  id: string;
+  name: string;
+  imgUrl?: string;
+}
