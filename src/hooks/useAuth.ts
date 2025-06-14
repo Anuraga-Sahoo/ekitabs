@@ -13,6 +13,17 @@ function getCookie(name: string): string | null {
   return null;
 }
 
+function processUserName(name: string | null): string | null {
+  if (!name) return null;
+  try {
+    const decodedName = decodeURIComponent(name);
+    return decodedName.split(' ')[0]; // Get the first name
+  } catch (e) {
+    // If decoding fails, return the first part of the original string or the string itself
+    return name.split(' ')[0];
+  }
+}
+
 export function useAuth() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -29,13 +40,17 @@ export function useAuth() {
 
     setIsLoggedIn(newIsLoggedIn);
     setUserEmail(newIsLoggedIn ? emailCookie : null);
-    setUserName(newIsLoggedIn ? nameCookie : null);
+    setUserName(newIsLoggedIn ? processUserName(nameCookie) : null);
     setIsLoading(false);
   }, []);
 
   useEffect(() => {
     updateAuthState();
-    window.addEventListener('storage', updateAuthState);
+    // Listen for storage events to sync across tabs (if cookies are also updated by other means)
+    // However, cookie changes themselves don't fire 'storage' events.
+    // For robust cross-tab sync of cookie-based auth, a more complex solution might be needed,
+    // like polling or using BroadcastChannel, but for now, focus and visibility changes are good.
+    window.addEventListener('storage', updateAuthState); 
     return () => {
       window.removeEventListener('storage', updateAuthState);
     };
@@ -49,6 +64,13 @@ export function useAuth() {
         setIsLoggedIn(false);
         setUserEmail(null);
         setUserName(null);
+        // Explicitly clear cookies on client-side as a fallback, though API should do it.
+        if (typeof document !== 'undefined') {
+            document.cookie = "isLoggedIn=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+            document.cookie = "userEmail=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+            document.cookie = "userName=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+            document.cookie = "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        }
         toast({ title: "Logged Out", description: "You have been successfully logged out." });
         router.push('/'); 
         router.refresh(); 
@@ -62,21 +84,29 @@ export function useAuth() {
     }
   }, [router, toast]);
 
+  // Effect to re-check auth state on window focus or tab visibility change
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+    const handleActivity = () => {
+      // Only update if not currently loading to avoid redundant checks
+      // And if the document is visible (for visibilitychange)
+      if (!isLoading && (document.visibilityState === 'visible' || document.hasFocus())) {
         const currentLoggedInCookie = getCookie('isLoggedIn') === 'true';
-        if (currentLoggedInCookie !== isLoggedIn && !isLoading) {
-          updateAuthState();
-          router.refresh();
+         // Only refresh if the cookie state has changed from the hook's state
+        if (currentLoggedInCookie !== isLoggedIn) {
+            updateAuthState();
+            // router.refresh(); // Potentially refresh page, consider if this is too disruptive
         }
       }
     };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    window.addEventListener('focus', handleActivity);
+    document.addEventListener('visibilitychange', handleActivity);
+
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleActivity);
+      document.removeEventListener('visibilitychange', handleActivity);
     };
-  }, [isLoggedIn, isLoading, router, updateAuthState]);
+  }, [isLoggedIn, isLoading, updateAuthState]); // router not needed here as it's used in logout
 
   return { isLoggedIn, userEmail, userName, isLoading, logout, updateAuthState };
 }
