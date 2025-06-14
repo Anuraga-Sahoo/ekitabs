@@ -26,9 +26,7 @@ export default function DashboardPage() {
                     Hi, {userName}! Welcome 👋
                  </CardTitle>
               </div>
-              <CardDescription className="text-lg text-muted-foreground">
-                Everything you need is in the sidebar. Explore and make the most of TestPrep AI!
-              </CardDescription>
+              {/* Informational text removed from here */}
             </>
           ) : (
             <>
@@ -47,11 +45,9 @@ export default function DashboardPage() {
             </>
           ) : isLoggedIn ? (
             <>
-              <p className="text-muted-foreground">
-                You can manage your tests, review history, and update your profile using the links in the sidebar.
-              </p>
-              <p className="text-muted-foreground">
-                Ready to start? Select an option from the navigation menu.
+              {/* Supporting text removed from CardContent as well */}
+               <p className="text-muted-foreground">
+                Your AI-powered test preparation journey starts here. Use the sidebar to navigate.
               </p>
             </>
           ) : (
