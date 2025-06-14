@@ -2,8 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // Import useRouter
+import { useRouter } from 'next/navigation'; 
 import { Bell, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,22 +14,22 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { Notification } from '@/types';
+import type { ClientNotification } from '@/types'; // Updated to ClientNotification
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import NotificationDialog from './NotificationDialog'; // Import the new dialog
+import NotificationDialog from './NotificationDialog'; 
 
 export default function NotificationBell() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<ClientNotification[]>([]); // Use ClientNotification
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { toast } = useToast();
   const mounted = useRef(false);
-  const router = useRouter(); // Initialize useRouter
+  const router = useRouter(); 
 
-  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [selectedNotification, setSelectedNotification] = useState<ClientNotification | null>(null);
   const [isNotificationDialogOpen, setIsNotificationDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -41,6 +40,7 @@ export default function NotificationBell() {
   }, []);
 
   const fetchNotifications = useCallback(async (showErrorToast = false) => {
+    if(!mounted.current) return;
     setIsLoading(true);
     try {
       const response = await fetch('/api/notifications');
@@ -73,46 +73,53 @@ export default function NotificationBell() {
     fetchNotifications(true);
   }, [fetchNotifications]);
 
-  const markNotificationsAsRead = useCallback(async () => {
-    if (unreadCount > 0 || notifications.some(n => !n.isRead)) { // Check if there's anything to mark
-      try {
-        const markReadResponse = await fetch('/api/notifications/mark-all-read', { method: 'POST' });
-        if (markReadResponse.ok) {
-          if (mounted.current) {
-            setUnreadCount(0);
-            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-          }
-        } else {
-          const errorData = await markReadResponse.json().catch(() => ({}));
-          if (mounted.current) {
-            toast({ title: "Error", description: errorData.message || "Could not mark notifications as read.", variant: "destructive"});
-          }
-        }
-      } catch (error) {
-        console.error("Error marking notifications as read:", error);
+  const markNotificationsAsReadOnServer = useCallback(async () => {
+    if (!mounted.current) return;
+    // Only call if there are genuinely unread items based on current client state or if we want to ensure backend is synced.
+    // The API will handle the logic of what to mark.
+    try {
+      const markReadResponse = await fetch('/api/notifications/mark-all-read', { method: 'POST' });
+      if (!markReadResponse.ok) {
+        const errorData = await markReadResponse.json().catch(() => ({}));
         if (mounted.current) {
-          toast({ title: "Error", description: "Failed to communicate with server to mark notifications.", variant: "destructive"});
+          toast({ title: "Error", description: errorData.message || "Could not mark notifications as read.", variant: "destructive"});
         }
+      } else {
+        // Successfully marked on server, client state unreadCount will be updated on next fetch or optimistically.
+        // For now, let fetch handle it.
+      }
+    } catch (error) {
+      console.error("Error marking notifications as read:", error);
+      if (mounted.current) {
+        toast({ title: "Error", description: "Failed to communicate with server to mark notifications.", variant: "destructive"});
       }
     }
-  }, [notifications, unreadCount, toast]);
+  }, [toast]);
+
 
   const handleOpenChange = async (open: boolean) => {
     setIsDropdownOpen(open);
     if (open) { 
+      // Fetch fresh notifications first
       await fetchNotifications(true); 
-      await markNotificationsAsRead();
+      // Then, if there were unread items (or just to be sure), try to mark them as read on server
+      if (unreadCount > 0 || notifications.some(n => !n.isRead)) { // Check based on potentially stale client data before server call
+        await markNotificationsAsReadOnServer();
+        // Optionally, refetch after marking to get the absolute latest state, or update optimistically
+        // For simplicity, we can rely on the next automatic fetch or if the user re-opens.
+        // Or, to be more responsive:
+        await fetchNotifications(false); // Fetch again silently to update unreadCount and visuals
+      }
     }
   };
   
-  const handleNotificationClick = (notification: Notification) => {
+  const handleNotificationClick = (notification: ClientNotification) => {
     setSelectedNotification(notification);
     if (notification.link) {
       router.push(notification.link);
-      setIsDropdownOpen(false); // Close dropdown after navigation
+      setIsDropdownOpen(false); 
     } else {
       setIsNotificationDialogOpen(true);
-      // Dropdown might close automatically, or handle its closure if needed
     }
   };
 
@@ -154,12 +161,10 @@ export default function NotificationBell() {
                   !notification.isRead && "font-semibold bg-primary/5 dark:bg-primary/10 hover:bg-primary/10 dark:hover:bg-primary/15"
                 )}
                 onClick={() => handleNotificationClick(notification)}
-                // No asChild or Link here, click is handled by onClick
               >
                 <p className="text-sm leading-snug whitespace-normal break-words">
                   {notification.title}
                 </p>
-                {/* Displaying contentHTML as plain text to avoid XSS by default if not using dialog */}
                 <p className="text-xs text-muted-foreground mt-0.5 whitespace-normal break-words line-clamp-2">
                   {notification.contentHTML.replace(/<[^>]*>?/gm, '').substring(0,100)} 
                   {notification.contentHTML.replace(/<[^>]*>?/gm, '').length > 100 ? '...' : ''}

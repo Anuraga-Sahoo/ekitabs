@@ -1,4 +1,6 @@
 
+import type { ObjectId } from 'mongodb';
+
 export interface AppQuestion {
   id: string;
   subject: string;
@@ -55,13 +57,28 @@ export interface StoredQuiz {
   title: string;
 }
 
-export interface Notification {
-  _id: string; 
-  userId: string;
+// Represents the notification structure in MongoDB
+export interface NotificationDocument {
+  _id: ObjectId; 
   title: string;
   contentHTML: string; 
   link?: string;
-  createdAt: string; // ISO date string
-  updatedAt: string; // ISO date string
-  isRead: boolean;
+  createdAt: Date; // Main notification creation date as Date object
+  updatedAt: Date; // Main notification last update date as Date object
+  userIds: string[]; // Array of user IDs this notification is for
+  readStatus: Array<{ 
+    userId: string; 
+    isRead: boolean; 
+    lastStatusUpdate: Date; // Date object
+  }>; 
+}
+
+// Represents the notification structure for the client
+export interface ClientNotification {
+  _id: string; 
+  title: string;
+  contentHTML: string; 
+  link?: string;
+  createdAt: string; // ISO date string (main notification creation)
+  isRead: boolean; // Derived for the current user
 }

@@ -2,13 +2,13 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { getUserIdFromAuthToken } from '@/lib/authUtilsOnServer';
-import type { Notification } from '@/types';
+import type { NotificationDocument, ClientNotification } from '@/types';
 import type { Collection, Db, MongoClient, WithId } from 'mongodb';
 
-async function getNotificationsCollection(): Promise<Collection<Notification>> {
+async function getNotificationsCollection(): Promise<Collection<NotificationDocument>> {
   const client: MongoClient = await clientPromise;
   const db: Db = client.db();
-  return db.collection<Notification>('notifications');
+  return db.collection<NotificationDocument>('notifications');
 }
 
 export async function GET(request: NextRequest) {
@@ -19,28 +19,32 @@ export async function GET(request: NextRequest) {
 
   try {
     const collection = await getNotificationsCollection();
-    // Find notifications for the current user
-    // Ensure createdAt and updatedAt are stored as ISODate in MongoDB for correct sorting and parsing
+    
+    // Find notifications where the current user's ID is in the userIds array
     const notificationsFromDb = await collection
-      .find({ userId }) 
+      .find({ userIds: userId }) 
       .sort({ createdAt: -1 }) 
       .limit(20) 
       .toArray();
 
-    const unreadCount = await collection.countDocuments({ userId, isRead: false });
+    let unreadCount = 0;
+    const processedNotifications: ClientNotification[] = notificationsFromDb.map(doc => {
+      const userReadEntry = doc.readStatus?.find(rs => rs.userId === userId);
+      const isReadForCurrentUser = userReadEntry ? userReadEntry.isRead : false;
 
-    // Ensure _id is stringified and all fields match the Notification type
-    // MongoDB Date objects will be serialized to ISO strings by NextResponse.json
-    const processedNotifications = notificationsFromDb.map(n => ({
-      _id: n._id.toString(),
-      userId: n.userId,
-      title: n.title,
-      contentHTML: n.contentHTML,
-      link: n.link, // Will be undefined if not present
-      createdAt: n.createdAt, // Expecting ISODate string or Date object
-      updatedAt: n.updatedAt, // Expecting ISODate string or Date object
-      isRead: n.isRead,
-    }));
+      if (!isReadForCurrentUser) {
+        unreadCount++;
+      }
+
+      return {
+        _id: doc._id.toString(),
+        title: doc.title,
+        contentHTML: doc.contentHTML,
+        link: doc.link,
+        createdAt: doc.createdAt.toISOString(), // Use main notification's createdAt
+        isRead: isReadForCurrentUser,
+      };
+    });
 
     return NextResponse.json({ notifications: processedNotifications, unreadCount }, { status: 200 });
   } catch (error) {

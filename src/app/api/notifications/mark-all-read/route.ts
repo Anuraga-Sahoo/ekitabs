@@ -2,15 +2,8 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { getUserIdFromAuthToken } from '@/lib/authUtilsOnServer';
-import type { Notification } from '@/types'; // Ensure Notification type is imported if needed, though not strictly for this operation
+import type { NotificationDocument } from '@/types';
 import type { Collection, Db, MongoClient } from 'mongodb';
-
-// Define a minimal type for the update operation if Notification type is too broad or not needed
-interface NotificationDocument {
-  userId: string;
-  isRead: boolean;
-  // include other fields if necessary for querying or operations, but not for $set
-}
 
 async function getNotificationsCollection(): Promise<Collection<NotificationDocument>> {
   const client: MongoClient = await clientPromise;
@@ -26,12 +19,48 @@ export async function POST(request: NextRequest) {
 
   try {
     const collection = await getNotificationsCollection();
-    const result = await collection.updateMany(
-      { userId: userId, isRead: false }, // Filter by userId and only unread notifications
-      { $set: { isRead: true, updatedAt: new Date().toISOString() } } // Mark as read and update timestamp
-    );
+    const now = new Date();
+    let updatedCount = 0;
 
-    return NextResponse.json({ message: "Notifications marked as read.", updatedCount: result.modifiedCount }, { status: 200 });
+    // 1. Update existing unread statuses for the user
+    const updateExistingResult = await collection.updateMany(
+      { 
+        userIds: userId, 
+        "readStatus.userId": userId, 
+        "readStatus.isRead": false 
+      },
+      { 
+        $set: { 
+          "readStatus.$.isRead": true, 
+          "readStatus.$.lastStatusUpdate": now,
+          "updatedAt": now 
+        } 
+      }
+    );
+    updatedCount += updateExistingResult.modifiedCount;
+
+    // 2. Add read status for users who are in userIds but not in readStatus array
+    // This marks notifications as read for users encountering them for the first time via "mark all read"
+    const addNewStatusResult = await collection.updateMany(
+      { 
+        userIds: userId, 
+        "readStatus.userId": { $ne: userId } 
+      },
+      { 
+        $push: { 
+          readStatus: { 
+            userId: userId, 
+            isRead: true, 
+            lastStatusUpdate: now 
+          } 
+        },
+        $set: { "updatedAt": now }
+      }
+    );
+    updatedCount += addNewStatusResult.modifiedCount;
+
+
+    return NextResponse.json({ message: "Notifications marked as read.", updatedCount: updatedCount }, { status: 200 });
   } catch (error) {
     console.error('Error marking notifications as read:', error);
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
