@@ -90,11 +90,25 @@ export default function TestHistoryPage() {
   };
 
   const handleRetakeTest = (item: TestResultItem) => {
-    if (item.originalQuizId && item.testAttemptId) {
-      const path = item.testType === 'mock' ? '/mock-test' : '/practice-test';
-      router.push(`${path}?retakeQuizId=${item.originalQuizId}&attemptToUpdateId=${item.testAttemptId}`);
+    if (!item.testAttemptId) {
+       toast({ title: "Error", description: "Cannot retake test without an attempt ID.", variant: "destructive" });
+       return;
+    }
+  
+    if (item.testType === 'practice' && item.config) {
+      const { subject, chapter, numberOfQuestions, complexityLevel } = item.config;
+      const params = new URLSearchParams({
+        subject,
+        chapter,
+        numberOfQuestions: String(numberOfQuestions),
+        complexityLevel,
+        attemptToUpdateId: item.testAttemptId, // Pass the ID of the attempt to update
+      });
+      router.push(`/practice-test?${params.toString()}`);
+    } else if (item.testType === 'mock' && item.originalQuizId) {
+      router.push(`/mock-test?quizId=${item.originalQuizId}&attemptToUpdateId=${item.testAttemptId}`);
     } else {
-      toast({ title: "Error", description: "Could not find original test data or attempt ID to retake.", variant: "destructive" });
+      toast({ title: "Error", description: "Could not find the necessary data to retake this test.", variant: "destructive" });
     }
   };
 

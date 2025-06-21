@@ -7,9 +7,8 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import TestInProgress from '@/components/TestInProgress';
 import TestResultsDisplay from '@/components/TestResultsDisplay';
 import { generatePracticeQuestions, type GeneratePracticeQuestionsOutput } from '@/ai/flows/generate-practice-questions';
-import type { AppQuestion, PracticeTestConfig, TestResultItem, TestScore, StoredQuiz } from '@/types';
+import type { AppQuestion, PracticeTestConfig, TestResultItem, TestScore } from '@/types';
 import { saveTestResult, updateTestResult } from '@/lib/testHistoryStorage';
-import { saveGeneratedQuiz, getGeneratedQuiz } from '@/lib/quizStorage';
 import { generateQuizId } from '@/lib/quizUtils';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -48,24 +47,21 @@ export default function PracticeTestPage() {
   const handleSetupSubmit = useCallback(async (config: PracticeTestConfig) => {
     setTestState('loading');
     setCurrentTestConfig(config);
-    setCurrentAttemptToUpdateId(null); // Ensure it's a new test, not an update
+    
+    // Check if coming from a retake link and set attemptToUpdateId
+    const attemptToUpdateId = searchParams.get('attemptToUpdateId');
+    if(attemptToUpdateId) {
+      setCurrentAttemptToUpdateId(attemptToUpdateId);
+    } else {
+      setCurrentAttemptToUpdateId(null);
+    }
+    
     try {
       const aiOutput = await generatePracticeQuestions(config);
       if (aiOutput && aiOutput.generatedMcqs.length > 0) {
         const transformedQuestions = transformAiQuestions(aiOutput, config);
         const newOriginalQuizId = generateQuizId('practice', config.subject, config.chapter);
-        const testTitle = getPracticeTestTitle(config);
-
-        const quizToStore: StoredQuiz = {
-          id: newOriginalQuizId,
-          testType: 'practice',
-          questions: transformedQuestions,
-          config: config,
-          createdAt: new Date().toISOString(),
-          title: testTitle,
-        };
-        await saveGeneratedQuiz(quizToStore);
-
+        
         setQuestions(transformedQuestions);
         setCurrentOriginalQuizId(newOriginalQuizId);
         setDurationMinutes(config.numberOfQuestions * PRACTICE_TEST_MINUTES_PER_QUESTION);
@@ -80,12 +76,6 @@ export default function PracticeTestPage() {
       if (error instanceof Error) {
         if (error.message.includes("503") || error.message.toLowerCase().includes("model is overloaded")) {
           description = "The AI model is currently overloaded. Please try again in a few moments.";
-        } else if (error.message.toLowerCase().includes("failed to save quiz to database")) {
-          if (error.message.toLowerCase().includes("authentication failed")) {
-            description = "Could not save the generated test to the database due to an authentication issue. Please check your MONGODB_URI and database user permissions.";
-          } else {
-            description = "Could not save the generated test to the database. Please check your connection and try again.";
-          }
         } else {
           description = `Details: ${error.message}`;
         }
@@ -97,58 +87,36 @@ export default function PracticeTestPage() {
       });
       setTestState('setup');
     }
-  }, [toast]);
+  }, [searchParams, toast]);
   
-  const startRetakeTest = useCallback(async (quizId: string, attemptIdToUpdate?: string | null) => {
-    setTestState('loading');
-    if (attemptIdToUpdate) {
-      setCurrentAttemptToUpdateId(attemptIdToUpdate);
-    } else {
-      setCurrentAttemptToUpdateId(null);
-    }
-    try {
-      const storedQuiz = await getGeneratedQuiz(quizId);
-      if (storedQuiz && storedQuiz.testType === 'practice' && storedQuiz.config) {
-        const questionsForRetake = storedQuiz.questions.map(q => ({ ...q, userAnswer: undefined }));
-        setQuestions(questionsForRetake);
-        setCurrentTestConfig(storedQuiz.config);
-        setCurrentOriginalQuizId(storedQuiz.id);
-        setDurationMinutes(storedQuiz.config.numberOfQuestions * PRACTICE_TEST_MINUTES_PER_QUESTION);
-        setTestState('inProgress');
-      } else {
-        toast({ title: "Error", description: "Could not find the practice test to retake or its configuration is missing.", variant: "destructive" });
-        router.replace('/practice-test'); 
-        setTestState('setup');
-      }
-    } catch (error) {
-       console.error("Error retaking practice test:", error);
-       let description = "Failed to load the test for retake.";
-       if (error instanceof Error && error.message.toLowerCase().includes("failed to retrieve quiz from database")){
-           description = "Could not load the test questions from the database. Please try again.";
-       } else if (error instanceof Error) {
-           description = `Details: ${error.message}`;
-       }
-       toast({ title: "Error Retaking Test", description: description, variant: "destructive" });
-       router.replace('/practice-test');
-       setTestState('setup');
-    }
-  }, [router, toast]);
-
+  // This effect handles retakes by reading config from URL
   useEffect(() => {
-    const retakeQuizId = searchParams.get('retakeQuizId');
-    const attemptIdToUpdate = searchParams.get('attemptToUpdateId');
-    if (retakeQuizId && testState === 'setup') { 
-        startRetakeTest(retakeQuizId, attemptIdToUpdate);
+    const subject = searchParams.get('subject');
+    const chapter = searchParams.get('chapter');
+    const numberOfQuestionsStr = searchParams.get('numberOfQuestions');
+    const complexityLevel = searchParams.get('complexityLevel');
+
+    // Only trigger if all params for a retake are present and we are in the setup state
+    if (subject && chapter && numberOfQuestionsStr && complexityLevel && testState === 'setup') {
+        const config: PracticeTestConfig = {
+            subject,
+            chapter,
+            numberOfQuestions: parseInt(numberOfQuestionsStr, 10),
+            complexityLevel: complexityLevel as PracticeTestConfig['complexityLevel'],
+        };
+        handleSetupSubmit(config);
     }
-  }, [searchParams, startRetakeTest, testState]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, testState]);
 
 
   const handleSubmitTest = async (userAnswers: Record<string, string>, originalQuizIdFromComponent: string, timeTakenSeconds: number) => {
-    if (!currentTestConfig || !currentOriginalQuizId) {
+    if (!currentTestConfig) {
         toast({ title: "Error Submitting Test", description: "Test configuration or ID is missing. Cannot submit.", variant: "destructive" });
         return;
     }
     const isUpdate = !!currentAttemptToUpdateId;
+    const newOriginalQuizId = currentOriginalQuizId || generateQuizId('practice', currentTestConfig.subject, currentTestConfig.chapter);
 
     const answeredQuestions = questions.map(q => ({
       ...q,
@@ -176,7 +144,7 @@ export default function PracticeTestPage() {
     const score: TestScore = { correct, incorrect, unanswered, totalScore, maxScore };
     const resultData: TestResultItem = {
       testAttemptId: isUpdate ? currentAttemptToUpdateId! : `practice-attempt-${Date.now()}-${Math.random().toString(36).substring(2,7)}`,
-      originalQuizId: currentOriginalQuizId, 
+      originalQuizId: newOriginalQuizId, 
       testType: 'practice',
       testTitle: testTitle,
       dateCompleted: new Date().toISOString(),
@@ -198,10 +166,8 @@ export default function PracticeTestPage() {
       setTestState('completed');
 
       if (isUpdate) {
-        setCurrentAttemptToUpdateId(null);
-        const newSearchParams = new URLSearchParams(searchParams.toString());
-        newSearchParams.delete('attemptToUpdateId');
-        router.replace(`${pathname}?${newSearchParams.toString()}`, { scroll: false });
+        // Clear params to prevent re-triggering retake on refresh
+        router.replace(pathname, { scroll: false });
       }
     } catch (error) {
        console.error(`Error ${isUpdate ? 'updating' : 'saving'} practice test result:`, error);
@@ -227,7 +193,7 @@ export default function PracticeTestPage() {
        } else {
          setCurrentAttemptToUpdateId(null);
          setTestState('setup');
-         router.push('/practice-test');
+         router.replace('/practice-test');
        }
     }
   };
@@ -246,7 +212,8 @@ export default function PracticeTestPage() {
     return <div className="flex items-center justify-center h-screen"><LoadingSpinner text="Preparing your practice test..." /></div>;
   }
 
-  if (testState === 'inProgress' && currentTestConfig && currentOriginalQuizId) {
+  if (testState === 'inProgress' && currentTestConfig) {
+    const originalQuizId = currentOriginalQuizId || 'temp-id';
     return (
       <TestInProgress
         questions={questions}
@@ -254,7 +221,7 @@ export default function PracticeTestPage() {
         onTestSubmit={handleSubmitTest}
         testType="practice"
         practiceTestConfig={{subject: currentTestConfig.subject, chapter: currentTestConfig.chapter }}
-        originalQuizId={currentOriginalQuizId}
+        originalQuizId={originalQuizId}
       />
     );
   }

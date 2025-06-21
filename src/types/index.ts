@@ -37,7 +37,7 @@ export interface TestScore {
 export interface TestResultItem {
   testAttemptId: string; 
   originalQuizId: string; 
-  userId: string; 
+  userId?: string; 
   testType: 'mock' | 'practice';
   testTitle: string; 
   dateCompleted: string;
@@ -47,15 +47,9 @@ export interface TestResultItem {
   timeTakenSeconds?: number; 
 }
 
-export interface StoredQuiz {
-  id: string; 
-  userId: string; 
-  testType: 'mock' | 'practice';
-  questions: AppQuestion[]; 
-  config?: PracticeTestConfig; 
-  createdAt: string;
-  title: string;
-}
+// This type is no longer needed as quizzes are not stored client-side
+// export interface StoredQuiz { ... }
+
 
 export interface NotificationDocument {
   _id: ObjectId; 
