@@ -8,6 +8,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Toaster } from "@/components/ui/toaster";
 import { usePathname } from 'next/navigation'; // Import usePathname
+import { cn } from '@/lib/utils';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -32,9 +33,6 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
 
-  // Define paths that are considered part of the "dashboard" or authenticated app area
-  // where the main marketing footer should not be displayed.
-  // This list is based on typical authenticated app sections and sidebar links.
   const appInternalPaths = [
     '/dashboard',
     '/previous-year-tests',
@@ -47,18 +45,25 @@ export default function RootLayout({
     '/profile'
   ];
 
-  // Check if the current pathname starts with any of the app-internal paths
-  // or is an exact match for one of them.
   const hideFooter = appInternalPaths.some(p => pathname === p || pathname.startsWith(p + '/'));
+  
+  // New logic to control page width
+  const fullWidthPaths = ['/mock-test', '/practice-test'];
+  const isFullWidthPage = fullWidthPaths.some(p => pathname.startsWith(p));
+  
+  const mainClasses = cn(
+    "flex-grow",
+    { "container mx-auto px-4 py-8": !isFullWidthPage }
+  );
 
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}>
         <Header />
-        <main className="flex-grow container mx-auto px-4 py-8">
+        <main className={mainClasses}>
           {children}
         </main>
-        {!hideFooter && <Footer />} {/* Conditionally render Footer */}
+        {!hideFooter && <Footer />}
         <Toaster />
       </body>
     </html>

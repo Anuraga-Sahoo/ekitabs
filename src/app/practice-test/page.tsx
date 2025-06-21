@@ -13,6 +13,7 @@ import { saveGeneratedQuiz, getGeneratedQuiz } from '@/lib/quizStorage';
 import { generateQuizId } from '@/lib/quizUtils';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import DashboardLayoutComponent from '@/components/layouts/DashboardLayoutComponent';
 
 const PRACTICE_TEST_MINUTES_PER_QUESTION = 2;
 
@@ -259,16 +260,19 @@ export default function PracticeTestPage() {
   }
 
   if (testState === 'completed' && testResult) {
-     return <TestResultsDisplay result={testResult} />;
+     return (
+        <DashboardLayoutComponent>
+            <TestResultsDisplay result={testResult} />
+        </DashboardLayoutComponent>
+     );
   }
 
-  // Default to setup form
   return (
-    <div className="w-full max-w-2xl mx-auto py-8">
-      <h1 className="text-3xl font-bold text-center mb-8 text-primary">Create Practice MCQs</h1>
-      <PracticeTestSetupForm onSubmit={handleSetupSubmit} isLoading={testState === 'loading'} />
-    </div>
+    <DashboardLayoutComponent>
+        <div className="w-full max-w-2xl mx-auto py-8">
+            <h1 className="text-3xl font-bold text-center mb-8 text-primary">Create Practice MCQs</h1>
+            <PracticeTestSetupForm onSubmit={handleSetupSubmit} isLoading={testState === 'loading'} />
+        </div>
+    </DashboardLayoutComponent>
   );
 }
-
-    

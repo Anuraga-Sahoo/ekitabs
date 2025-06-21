@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlayCircle } from 'lucide-react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import DashboardLayoutComponent from '@/components/layouts/DashboardLayoutComponent';
 
 const MOCK_TEST_DURATION_MINUTES = 25; // 50 questions * 0.5 min/question
 const MOCK_TEST_NUM_QUESTIONS = 50; 
@@ -234,30 +235,36 @@ export default function MockTestPage() {
   }
 
   if (testState === 'completed' && testResult) {
-    return <TestResultsDisplay result={testResult} />;
+    return (
+        <DashboardLayoutComponent>
+            <TestResultsDisplay result={testResult} />
+        </DashboardLayoutComponent>
+    );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
-      <Card className="w-full max-w-lg text-center shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-3xl font-bold">Mock Test Challenge</CardTitle>
-          <CardDescription className="text-lg">
-            This is a {MOCK_TEST_NUM_QUESTIONS}-MCQ mock test based on Class 11th &amp; 12th syllabus with a {MOCK_TEST_DURATION_MINUTES}-minute time limit.
-            The test includes 12 Physics, 13 Chemistry, and 25 Biology questions.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-6 text-muted-foreground">
-            Click the button below to begin. Good luck!
-          </p>
-        </CardContent>
-        <CardFooter>
-          <Button onClick={startNewTest} size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-            <PlayCircle className="mr-2 h-5 w-5" /> Start Mock Test
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+    <DashboardLayoutComponent>
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
+        <Card className="w-full max-w-lg text-center shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-3xl font-bold">Mock Test Challenge</CardTitle>
+            <CardDescription className="text-lg">
+              This is a {MOCK_TEST_NUM_QUESTIONS}-MCQ mock test based on Class 11th &amp; 12th syllabus with a {MOCK_TEST_DURATION_MINUTES}-minute time limit.
+              The test includes 12 Physics, 13 Chemistry, and 25 Biology questions.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-6 text-muted-foreground">
+              Click the button below to begin. Good luck!
+            </p>
+          </CardContent>
+          <CardFooter>
+            <Button onClick={startNewTest} size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+              <PlayCircle className="mr-2 h-5 w-5" /> Start Mock Test
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    </DashboardLayoutComponent>
   );
 }
