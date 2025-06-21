@@ -56,6 +56,9 @@ export default function MockTestPage() {
         try {
             const response = await fetch(`/api/quiz/${quizId}`);
             if (!response.ok) {
+                if (response.status === 504) {
+                    throw new Error("The server took too long to respond (Gateway Timeout). This might be a temporary issue. Please try again in a few moments.");
+                }
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.message || `Failed to fetch test data. Status: ${response.status}`);
             }
