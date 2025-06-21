@@ -2,21 +2,32 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'; // Added CardDescription, CardFooter
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Smile, X, BookOpen, Loader2, ChevronRight, Layers, ChevronsUpDown } from 'lucide-react'; // Added ChevronsUpDown for Select
+import { Smile, X, BookOpen, Loader2, ChevronRight, Layers, ChevronsUpDown, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Subject, Exam, ClientQuiz } from '@/types'; // Changed ExamCategory to Exam
+import type { Subject, Exam, ClientQuiz } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Added Select components
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
   const { userName, isLoggedIn, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const popupTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -24,14 +35,16 @@ export default function DashboardPage() {
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   const [subjectError, setSubjectError] = useState<string | null>(null);
   
-  const [examListings, setExamListings] = useState<Exam[]>([]); // Changed from examCategories to examListings, type to Exam[]
-  const [isLoadingExamListings, setIsLoadingExamListings] = useState(true); // Renamed
-  const [examListingError, setExamListingError] = useState<string | null>(null); // Renamed
-  const [selectedExamId, setSelectedExamId] = useState<string | null>(null); // Renamed from selectedCategoryId
+  const [examListings, setExamListings] = useState<Exam[]>([]);
+  const [isLoadingExamListings, setIsLoadingExamListings] = useState(true);
+  const [examListingError, setExamListingError] = useState<string | null>(null);
+  const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
 
   const [mockQuizzes, setMockQuizzes] = useState<ClientQuiz[]>([]);
   const [isLoadingMockQuizzes, setIsLoadingMockQuizzes] = useState(false);
   const [mockQuizError, setMockQuizError] = useState<string | null>(null);
+
+  const [selectedQuizForDialog, setSelectedQuizForDialog] = useState<ClientQuiz | null>(null);
 
   const { toast } = useToast();
 
@@ -62,47 +75,25 @@ export default function DashboardPage() {
       setSubjectError(null);
       try {
         const response = await fetch('/api/subjects');
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: 'Failed to fetch subjects' }));
-          throw new Error(errorData.message || `Error: ${response.statusText}`);
-        }
+        if (!response.ok) throw new Error('Failed to fetch subjects');
         const data = await response.json();
         setSubjects(data.subjects || []);
       } catch (error) {
-        console.error("Failed to fetch subjects:", error);
-        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred while fetching subjects.";
-        setSubjectError(errorMessage);
-        toast({
-          title: "Error Loading Subjects",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        setSubjectError(error instanceof Error ? error.message : 'An unknown error occurred');
       } finally {
         setIsLoadingSubjects(false);
       }
     }
-    async function fetchExamListingsForDropdown() { // Renamed function
+    async function fetchExamListingsForDropdown() {
       setIsLoadingExamListings(true);
       setExamListingError(null);
       try {
-        // This API now fetches from 'exams' collection for names and IDs
-        const response = await fetch('/api/exam-categories'); // API route name is still exam-categories
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: 'Failed to fetch exam listings' }));
-          throw new Error(errorData.message || `Error: ${response.statusText}`);
-        }
+        const response = await fetch('/api/exam-categories');
+        if (!response.ok) throw new Error('Failed to fetch exam listings');
         const data = await response.json();
-        setExamListings(data.categories || []); // data.categories now contains {id, name} from exams collection
-        // Do not automatically select an exam
+        setExamListings(data.categories || []);
       } catch (error) {
-        console.error("Failed to fetch exam listings:", error);
-        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred while fetching exam listings.";
-        setExamListingError(errorMessage);
-        toast({
-          title: "Error Loading Exam Listings",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        setExamListingError(error instanceof Error ? error.message : 'An unknown error occurred');
       } finally {
         setIsLoadingExamListings(false);
       }
@@ -110,18 +101,17 @@ export default function DashboardPage() {
 
     if (isLoggedIn) { 
         fetchSubjects();
-        fetchExamListingsForDropdown(); // Call renamed function
+        fetchExamListingsForDropdown();
     } else if (!authLoading && !isLoggedIn) { 
         setIsLoadingSubjects(false); 
         setSubjects([]);
-        setIsLoadingExamListings(false); // Update loading state
-        setExamListings([]); // Update state variable
+        setIsLoadingExamListings(false);
+        setExamListings([]);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoggedIn, authLoading]); 
+  }, [isLoggedIn, authLoading]);
 
   useEffect(() => {
-    async function fetchQuizzesForSelectedExam() { // Renamed function
+    async function fetchQuizzesForSelectedExam() {
       if (!selectedExamId) {
         setMockQuizzes([]);
         return;
@@ -129,40 +119,34 @@ export default function DashboardPage() {
       setIsLoadingMockQuizzes(true);
       setMockQuizError(null);
       try {
-        const response = await fetch(`/api/exams?examId=${selectedExamId}`); // Changed to examId
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: `Failed to fetch mock quizzes for exam ${selectedExamId}` }));
-          throw new Error(errorData.message || `Error: ${response.statusText}`);
-        }
+        const response = await fetch(`/api/exams?examId=${selectedExamId}`);
+        if (!response.ok) throw new Error('Failed to fetch mock quizzes');
         const data = await response.json();
         setMockQuizzes(data.quizzes || []);
       } catch (error) {
-        console.error("Failed to fetch mock quizzes:", error);
-        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred while fetching mock quizzes.";
-        setMockQuizError(errorMessage);
-        toast({
-          title: "Error Loading Mock Quizzes",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        setMockQuizError(error instanceof Error ? error.message : 'An unknown error occurred');
+        toast({ title: "Error Loading Mock Quizzes", description: error instanceof Error ? error.message : 'An unknown error occurred', variant: "destructive" });
       } finally {
         setIsLoadingMockQuizzes(false);
       }
     }
     if (selectedExamId) {
-      fetchQuizzesForSelectedExam(); // Call renamed function
+      fetchQuizzesForSelectedExam();
     } else {
-      setMockQuizzes([]); // Clear quizzes if no exam is selected
+      setMockQuizzes([]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedExamId]);
-
 
   const handleClosePopup = () => {
     setIsPopupVisible(false);
     if (popupTimerRef.current) {
       clearTimeout(popupTimerRef.current);
     }
+  };
+  
+  const handleStartTest = (quizId: string) => {
+    router.push(`/mock-test?quizId=${quizId}`);
   };
 
   return (
@@ -176,7 +160,7 @@ export default function DashboardPage() {
           )}
           data-state={isPopupVisible ? "open" : "closed"}
         >
-          <Card className="shadow-xl border-primary/30 bg-card"> {/* Changed from bg-background */}
+          <Card className="shadow-xl border-primary/30 bg-card">
             <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
               <div className="flex items-center">
                 <Smile className="h-6 w-6 text-primary mr-2 flex-shrink-0" />
@@ -194,7 +178,7 @@ export default function DashboardPage() {
               </Button>
             </CardHeader>
             <CardContent className="pt-0 pb-3.5 px-4">
-                 <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Use the sidebar to navigate your test preparation journey.
                 </p>
             </CardContent>
@@ -213,9 +197,7 @@ export default function DashboardPage() {
             {[...Array(4)].map((_, index) => ( 
               <Card key={index} className="p-0 rounded-xl shadow-md bg-card overflow-hidden">
                 <Skeleton className="h-40 w-full" /> 
-                <div className="p-4">
-                  <Skeleton className="h-6 w-3/4 mx-auto" />
-                </div>
+                <div className="p-4"><Skeleton className="h-6 w-3/4 mx-auto" /></div>
               </Card>
             ))}
           </div>
@@ -223,12 +205,8 @@ export default function DashboardPage() {
 
         {!isLoadingSubjects && subjectError && (
           <Card className="bg-destructive/10 border-destructive text-destructive-foreground p-4">
-            <CardHeader>
-              <CardTitle>Failed to load subjects</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>{subjectError}</p>
-            </CardContent>
+            <CardHeader><CardTitle>Failed to load subjects</CardTitle></CardHeader>
+            <CardContent><p>{subjectError}</p></CardContent>
           </Card>
         )}
 
@@ -245,35 +223,17 @@ export default function DashboardPage() {
               <Link key={subject.id} href={`/practice-test?subject=${encodeURIComponent(subject.name)}`} passHref>
                 <Card className="group h-full flex flex-col p-0 overflow-hidden rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-card">
                   <div className="relative w-full h-40 bg-muted flex items-center justify-center overflow-hidden">
-                    {subject.imgUrl ? (
-                      <Image
-                        src={subject.imgUrl}
-                        alt={subject.name}
-                        width={400} 
-                        height={160} 
-                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-200"
-                        data-ai-hint={subject.name.toLowerCase().split(" ").slice(0,2).join(" ")}
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.onerror = null; 
-                          target.src = `https://placehold.co/400x160.png`;
-                        }}
-                      />
-                    ) : (
-                      <Image
-                        src={`https://placehold.co/400x160.png`}
-                        alt={`${subject.name} placeholder`}
-                        width={400}
-                        height={160}
-                        className="object-cover w-full h-full" 
-                        data-ai-hint={subject.name.toLowerCase().split(" ").slice(0,2).join(" ")}
-                      />
-                    )}
+                    <Image
+                      src={subject.imgUrl || `https://placehold.co/400x160.png`}
+                      alt={subject.name}
+                      width={400} height={160}
+                      className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-200"
+                      data-ai-hint={subject.name.toLowerCase().split(" ").slice(0,2).join(" ")}
+                      onError={(e) => { e.currentTarget.src = `https://placehold.co/400x160.png`; }}
+                    />
                   </div>
                   <CardContent className="p-4 flex-grow flex items-center justify-center">
-                    <h3 className="text-md font-semibold text-center text-card-foreground group-hover:text-primary transition-colors">
-                      {subject.name}
-                    </h3>
+                    <h3 className="text-md font-semibold text-center text-card-foreground group-hover:text-primary transition-colors">{subject.name}</h3>
                   </CardContent>
                 </Card>
               </Link>
@@ -291,9 +251,7 @@ export default function DashboardPage() {
             Get exam-ready with concepts, questions and study notes as per the latest pattern.
         </p>
 
-        {isLoadingExamListings && (
-            <Skeleton className="h-10 w-full max-w-sm rounded-md mb-6" />
-        )}
+        {isLoadingExamListings && <Skeleton className="h-10 w-full max-w-sm rounded-md mb-6" />}
         {!isLoadingExamListings && examListingError && (
             <Card className="bg-destructive/10 border-destructive text-destructive-foreground p-4 mb-6">
                 <CardHeader><CardTitle>Failed to load exam list</CardTitle></CardHeader>
@@ -301,32 +259,26 @@ export default function DashboardPage() {
             </Card>
         )}
         {!isLoadingExamListings && !examListingError && examListings.length > 0 && (
-            <Select 
-              onValueChange={(value) => setSelectedExamId(value)} 
-              value={selectedExamId || ""}
-            >
+            <Select onValueChange={setSelectedExamId} value={selectedExamId || ""}>
               <SelectTrigger className="w-full max-w-sm mb-6 text-base py-3 h-auto">
                 <ChevronsUpDown className="mr-2 h-4 w-4 opacity-50" />
                 <SelectValue placeholder="Select an Exam" />
               </SelectTrigger>
               <SelectContent>
                 {examListings.map((exam) => (
-                  <SelectItem key={exam.id} value={exam.id} className="text-base py-2">
-                    {exam.name}
-                  </SelectItem>
+                  <SelectItem key={exam.id} value={exam.id} className="text-base py-2">{exam.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
         )}
-         {!isLoadingExamListings && !examListingError && examListings.length === 0 && (
+        {!isLoadingExamListings && !examListingError && examListings.length === 0 && (
             <Card className="p-6 text-center text-muted-foreground mb-6">
               <Layers className="h-12 w-12 mx-auto mb-3 text-primary" />
               <p className="text-lg">No exams found to select.</p>
             </Card>
         )}
 
-
-        {isLoadingMockQuizzes && selectedExamId && ( // Show loading only if an exam is selected
+        {isLoadingMockQuizzes && selectedExamId && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[...Array(3)].map((_, i) => (
                     <Card key={i} className="p-4 rounded-lg shadow bg-card">
@@ -339,51 +291,58 @@ export default function DashboardPage() {
                 ))}
             </div>
         )}
-        {!isLoadingMockQuizzes && mockQuizError && selectedExamId && ( // Show error only if an exam is selected
+        {!isLoadingMockQuizzes && mockQuizError && selectedExamId && (
           <Card className="bg-destructive/10 border-destructive text-destructive-foreground p-4">
             <CardHeader><CardTitle>Failed to load mock quizzes</CardTitle></CardHeader>
             <CardContent><p>{mockQuizError}</p></CardContent>
           </Card>
         )}
-        {!isLoadingMockQuizzes && !mockQuizError && mockQuizzes.length === 0 && selectedExamId && ( // Show 'no quizzes' only if an exam is selected
+        {!isLoadingMockQuizzes && !mockQuizError && mockQuizzes.length === 0 && selectedExamId && (
             <Card className="p-6 text-center text-muted-foreground">
               <BookOpen className="h-12 w-12 mx-auto mb-3 text-primary" />
               <p className="text-lg">No published mock quizzes found for this exam.</p>
             </Card>
         )}
-        {/* Display quizzes only if an exam is selected, not loading, and no error */}
         {!isLoadingMockQuizzes && !mockQuizError && mockQuizzes.length > 0 && selectedExamId && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {mockQuizzes.map((quiz) => (
-                <Link key={quiz.id} href={`/mock-test?quizId=${quiz.id}`} passHref> 
-                    <Card className="group p-4 rounded-lg shadow bg-card hover:shadow-md transition-shadow cursor-pointer">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                                <Image
-                                    src={quiz.iconUrl || `https://placehold.co/40x40.png`}
-                                    alt={quiz.title}
-                                    width={40}
-                                    height={40}
-                                    className="rounded-full object-cover"
-                                    data-ai-hint={quiz.title.toLowerCase().split(" ").slice(0,2).join(" ")}
-                                    onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        target.onerror = null;
-                                        target.src = `https://placehold.co/40x40.png`;
-                                    }}
-                                />
-                                <span className="text-sm font-medium text-card-foreground group-hover:text-primary">
-                                    {quiz.title} 
-                                </span>
-                            </div>
-                            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary" />
-                        </div>
-                    </Card>
-                </Link>
+                  <Card key={quiz.id} className="group p-4 rounded-lg shadow bg-card hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedQuizForDialog(quiz)}>
+                      <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                              <Image
+                                  src={quiz.iconUrl || `https://placehold.co/40x40.png`}
+                                  alt={quiz.title} width={40} height={40}
+                                  className="rounded-full object-cover"
+                                  data-ai-hint={quiz.title.toLowerCase().split(" ").slice(0,2).join(" ")}
+                                  onError={(e) => { e.currentTarget.src = `https://placehold.co/40x40.png`; }}
+                              />
+                              <span className="text-sm font-medium text-card-foreground group-hover:text-primary">{quiz.title}</span>
+                          </div>
+                          <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary" />
+                      </div>
+                  </Card>
                 ))}
             </div>
         )}
       </section>
+
+      <AlertDialog open={!!selectedQuizForDialog} onOpenChange={(isOpen) => !isOpen && setSelectedQuizForDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Start Mock Test: {selectedQuizForDialog?.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedQuizForDialog?.description || "Are you sure you want to start this mock test? The timer will begin immediately."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No, go back</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleStartTest(selectedQuizForDialog!.id)}>
+              Yes, start the exam
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }

@@ -8,6 +8,7 @@ export interface AppQuestion {
   options: string[]; // For MCQs
   correctAnswer: string;
   userAnswer?: string;
+  explanation?: string;
 }
 
 export interface Test {
@@ -120,10 +121,7 @@ export interface ExamDocumentMongo {
 export interface Exam {
   id: string; // _id from ExamDocumentMongo
   name: string;
-  // categoryId?: string; // Optional
-  // quizIds?: string[]; // Optional on client unless needed for direct processing
-  // iconUrl?: string; // Optional
-  // description?: string; // Optional
+  description?: string;
 }
 
 
@@ -157,6 +155,8 @@ export interface QuizDocumentMongo {
   _id: ObjectId;
   title: string;
   testType: 'Mock' | 'Practice' | string; 
+  associatedExamId?: string;
+  associatedExamName?: string;
   classId?: string | null;
   subjectId?: string | null;
   chapterId?: string | null;
@@ -173,4 +173,12 @@ export interface ClientQuiz {
   id: string; // ObjectId of the quiz, converted to string
   title: string;
   iconUrl?: string; // Taken from the parent ExamDocumentMongo
+  description?: string; // Taken from parent exam
+}
+
+// Represents the full quiz details fetched for the test page
+export interface FullQuizDetails extends Omit<QuizDocumentMongo, '_id' | 'createdAt' | 'updatedAt'> {
+  _id: string;
+  createdAt: string;
+  updatedAt: string;
 }

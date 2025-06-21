@@ -18,7 +18,7 @@ async function getQuizzesCollection(): Promise<Collection<QuizDocumentMongo>> {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const examIdString = searchParams.get('examId'); // Changed from categoryId to examId
+  const examIdString = searchParams.get('examId');
   const { ObjectId } = await import('mongodb');
 
   if (!examIdString) {
@@ -34,11 +34,9 @@ export async function GET(request: NextRequest) {
     const examsCollection = await getExamsCollection();
     const quizzesCollection = await getQuizzesCollection();
     
-    // Fetch the specific exam document using examObjectId
     const examDoc = await examsCollection.findOne({ _id: examObjectId });
 
     if (!examDoc) {
-      // If no exam document found for the given examId
       return NextResponse.json({ message: 'Exam not found for the provided examId' }, { status: 404 });
     }
 
@@ -61,6 +59,7 @@ export async function GET(request: NextRequest) {
             id: quizDoc._id.toString(),
             title: quizDoc.title,
             iconUrl: examDoc.iconUrl || undefined, 
+            description: examDoc.description || undefined,
           });
         });
       }
