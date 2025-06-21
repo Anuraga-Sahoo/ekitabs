@@ -8,7 +8,6 @@ export interface AppQuestion {
   options: string[]; // For MCQs
   correctAnswer: string;
   userAnswer?: string;
-  explanation?: string;
 }
 
 export interface Test {
@@ -37,7 +36,7 @@ export interface TestScore {
 export interface TestResultItem {
   testAttemptId: string; 
   originalQuizId: string; 
-  userId?: string; 
+  userId: string; 
   testType: 'mock' | 'practice';
   testTitle: string; 
   dateCompleted: string;
@@ -47,9 +46,15 @@ export interface TestResultItem {
   timeTakenSeconds?: number; 
 }
 
-// This type is no longer needed as quizzes are not stored client-side
-// export interface StoredQuiz { ... }
-
+export interface StoredQuiz {
+  id: string; 
+  userId: string; 
+  testType: 'mock' | 'practice';
+  questions: AppQuestion[]; 
+  config?: PracticeTestConfig; 
+  createdAt: string;
+  title: string;
+}
 
 export interface NotificationDocument {
   _id: ObjectId; 
@@ -115,7 +120,10 @@ export interface ExamDocumentMongo {
 export interface Exam {
   id: string; // _id from ExamDocumentMongo
   name: string;
-  description?: string;
+  // categoryId?: string; // Optional
+  // quizIds?: string[]; // Optional on client unless needed for direct processing
+  // iconUrl?: string; // Optional
+  // description?: string; // Optional
 }
 
 
@@ -149,8 +157,6 @@ export interface QuizDocumentMongo {
   _id: ObjectId;
   title: string;
   testType: 'Mock' | 'Practice' | string; 
-  associatedExamId?: string;
-  associatedExamName?: string;
   classId?: string | null;
   subjectId?: string | null;
   chapterId?: string | null;
@@ -167,12 +173,4 @@ export interface ClientQuiz {
   id: string; // ObjectId of the quiz, converted to string
   title: string;
   iconUrl?: string; // Taken from the parent ExamDocumentMongo
-  description?: string; // Taken from parent exam
-}
-
-// Represents the full quiz details fetched for the test page
-export interface FullQuizDetails extends Omit<QuizDocumentMongo, '_id' | 'createdAt' | 'updatedAt'> {
-  _id: string;
-  createdAt: string;
-  updatedAt: string;
 }
