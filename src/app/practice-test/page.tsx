@@ -7,8 +7,9 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import TestInProgress from '@/components/TestInProgress';
 import TestResultsDisplay from '@/components/TestResultsDisplay';
 import { generatePracticeQuestions, type GeneratePracticeQuestionsOutput } from '@/ai/flows/generate-practice-questions';
-import type { AppQuestion, PracticeTestConfig, TestResultItem, TestScore } from '@/types';
-import { saveTestResult, updateTestResult, getTestResult } from '@/lib/testHistoryStorage';
+import type { AppQuestion, PracticeTestConfig, TestResultItem, TestScore, StoredQuiz } from '@/types';
+import { saveTestResult, updateTestResult } from '@/lib/testHistoryStorage';
+import { saveGeneratedQuiz, getGeneratedQuiz } from '@/lib/quizStorage';
 import { generateQuizId } from '@/lib/quizUtils';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -53,6 +54,17 @@ export default function PracticeTestPage() {
       if (aiOutput && aiOutput.generatedMcqs.length > 0) {
         const transformedQuestions = transformAiQuestions(aiOutput, config);
         const newOriginalQuizId = generateQuizId('practice', config.subject, config.chapter);
+        const testTitle = getPracticeTestTitle(config);
+
+        const quizToStore: StoredQuiz = {
+          id: newOriginalQuizId,
+          testType: 'practice',
+          questions: transformedQuestions,
+          config: config,
+          createdAt: new Date().toISOString(),
+          title: testTitle,
+        };
+        await saveGeneratedQuiz(quizToStore);
 
         setQuestions(transformedQuestions);
         setCurrentOriginalQuizId(newOriginalQuizId);
@@ -68,6 +80,12 @@ export default function PracticeTestPage() {
       if (error instanceof Error) {
         if (error.message.includes("503") || error.message.toLowerCase().includes("model is overloaded")) {
           description = "The AI model is currently overloaded. Please try again in a few moments.";
+        } else if (error.message.toLowerCase().includes("failed to save quiz to database")) {
+          if (error.message.toLowerCase().includes("authentication failed")) {
+            description = "Could not save the generated test to the database due to an authentication issue. Please check your MONGODB_URI and database user permissions.";
+          } else {
+            description = "Could not save the generated test to the database. Please check your connection and try again.";
+          }
         } else {
           description = `Details: ${error.message}`;
         }
@@ -81,17 +99,21 @@ export default function PracticeTestPage() {
     }
   }, [toast]);
   
-  const startRetakeFromHistory = useCallback(async (attemptIdToUpdate: string) => {
+  const startRetakeTest = useCallback(async (quizId: string, attemptIdToUpdate?: string | null) => {
     setTestState('loading');
-    setCurrentAttemptToUpdateId(attemptIdToUpdate);
+    if (attemptIdToUpdate) {
+      setCurrentAttemptToUpdateId(attemptIdToUpdate);
+    } else {
+      setCurrentAttemptToUpdateId(null);
+    }
     try {
-      const pastTestResult = await getTestResult(attemptIdToUpdate);
-      if (pastTestResult && pastTestResult.testType === 'practice' && pastTestResult.config) {
-        const questionsForRetake = pastTestResult.questions.map(q => ({ ...q, userAnswer: undefined }));
+      const storedQuiz = await getGeneratedQuiz(quizId);
+      if (storedQuiz && storedQuiz.testType === 'practice' && storedQuiz.config) {
+        const questionsForRetake = storedQuiz.questions.map(q => ({ ...q, userAnswer: undefined }));
         setQuestions(questionsForRetake);
-        setCurrentTestConfig(pastTestResult.config);
-        setCurrentOriginalQuizId(pastTestResult.originalQuizId);
-        setDurationMinutes(pastTestResult.config.numberOfQuestions * PRACTICE_TEST_MINUTES_PER_QUESTION);
+        setCurrentTestConfig(storedQuiz.config);
+        setCurrentOriginalQuizId(storedQuiz.id);
+        setDurationMinutes(storedQuiz.config.numberOfQuestions * PRACTICE_TEST_MINUTES_PER_QUESTION);
         setTestState('inProgress');
       } else {
         toast({ title: "Error", description: "Could not find the practice test to retake or its configuration is missing.", variant: "destructive" });
@@ -101,7 +123,9 @@ export default function PracticeTestPage() {
     } catch (error) {
        console.error("Error retaking practice test:", error);
        let description = "Failed to load the test for retake.";
-       if (error instanceof Error) {
+       if (error instanceof Error && error.message.toLowerCase().includes("failed to retrieve quiz from database")){
+           description = "Could not load the test questions from the database. Please try again.";
+       } else if (error instanceof Error) {
            description = `Details: ${error.message}`;
        }
        toast({ title: "Error Retaking Test", description: description, variant: "destructive" });
@@ -111,11 +135,12 @@ export default function PracticeTestPage() {
   }, [router, toast]);
 
   useEffect(() => {
+    const retakeQuizId = searchParams.get('retakeQuizId');
     const attemptIdToUpdate = searchParams.get('attemptToUpdateId');
-    if (attemptIdToUpdate && testState === 'setup') { 
-        startRetakeFromHistory(attemptIdToUpdate);
+    if (retakeQuizId && testState === 'setup') { 
+        startRetakeTest(retakeQuizId, attemptIdToUpdate);
     }
-  }, [searchParams, startRetakeFromHistory, testState]);
+  }, [searchParams, startRetakeTest, testState]);
 
 
   const handleSubmitTest = async (userAnswers: Record<string, string>, originalQuizIdFromComponent: string, timeTakenSeconds: number) => {

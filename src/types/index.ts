@@ -37,7 +37,7 @@ export interface TestScore {
 export interface TestResultItem {
   testAttemptId: string; 
   originalQuizId: string; 
-  userId?: string; 
+  userId: string; 
   testType: 'mock' | 'practice';
   testTitle: string; 
   dateCompleted: string;
@@ -45,6 +45,16 @@ export interface TestResultItem {
   questions: AppQuestion[]; 
   config?: PracticeTestConfig; 
   timeTakenSeconds?: number; 
+}
+
+export interface StoredQuiz {
+  id: string; 
+  userId: string; 
+  testType: 'mock' | 'practice';
+  questions: AppQuestion[]; 
+  config?: PracticeTestConfig; 
+  createdAt: string;
+  title: string;
 }
 
 export interface NotificationDocument {
@@ -83,10 +93,24 @@ export interface Subject {
   imgUrl?: string;
 }
 
+export interface ExamCategoryDocumentMongo {
+  _id: ObjectId;
+  name: string;
+  description?: string;
+}
+
+export interface ExamCategory { // This type can still be used if you have separate category pages/logic
+  id: string;
+  name: string;
+  description?: string;
+}
+
+// Represents the "exams" collection structure in MongoDB
 export interface ExamDocumentMongo {
   _id: ObjectId;
   name: string;
-  quizIds: string[]; 
+  categoryId?: ObjectId | string; // Optional if not all exams belong to a category
+  quizIds: string[]; // Array of strings, each representing an ObjectId of a quiz
   iconUrl?: string;
   description?: string;
   createdAt?: Date;

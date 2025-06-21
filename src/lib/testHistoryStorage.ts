@@ -83,38 +83,6 @@ export async function updateTestResult(testAttemptId: string, updatedData: Omit<
   }
 }
 
-/**
- * Retrieves a single test result by its attempt ID for the current user.
- */
-export async function getTestResult(testAttemptId: string): Promise<TestResultItem | null> {
-  const userId = await getUserIdFromAuthToken();
-  if (!userId) {
-    console.log("User not authenticated. Cannot get test result.");
-    return null;
-  }
-
-  try {
-    const collection = await getTestHistoryCollection();
-    // Ensure we only return the test if it belongs to the authenticated user
-    const result = await collection.findOne(
-      { userId, testAttemptId },
-      { projection: { _id: 0 } }
-    );
-    
-    if (result) {
-      console.log(`Retrieved test result ${testAttemptId} for user ${userId} from MongoDB.`);
-    } else {
-      console.log(`Test result ${testAttemptId} for user ${userId} not found in MongoDB.`);
-    }
-    
-    return result as TestResultItem | null;
-  } catch (error) {
-    const originalErrorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`Error retrieving test result ${testAttemptId} from MongoDB:`, originalErrorMessage);
-    throw new Error(`Failed to retrieve test result from database. Original error: ${originalErrorMessage}`);
-  }
-}
-
 
 /**
  * Retrieves test history for the current user from MongoDB, sorted by date completed descending.
