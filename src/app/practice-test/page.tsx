@@ -261,9 +261,7 @@ export default function PracticeTestPage() {
 
   if (testState === 'completed' && testResult) {
      return (
-        <DashboardLayoutComponent>
-            <TestResultsDisplay result={testResult} />
-        </DashboardLayoutComponent>
+        <TestResultsDisplay result={testResult} />
      );
   }
 

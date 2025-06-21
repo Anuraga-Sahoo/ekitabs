@@ -236,9 +236,7 @@ export default function MockTestPage() {
 
   if (testState === 'completed' && testResult) {
     return (
-        <DashboardLayoutComponent>
-            <TestResultsDisplay result={testResult} />
-        </DashboardLayoutComponent>
+      <TestResultsDisplay result={testResult} />
     );
   }
 
